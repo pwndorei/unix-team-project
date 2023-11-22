@@ -7,12 +7,14 @@
 #include "project.h"
 
 extern int shmid;
-const char *dat[4] = {"p1.dat", 
-					  "p2.dat", 
-					  "p3.dat", 
-					  "p4.dat"};
+static const char *dat[4] = {
+		"p1.dat", 
+		"p2.dat", 
+		"p3.dat", 
+		"p4.dat"
+};
 
-int fd = -1;//fd for p*.dat
+static int fd = -1;//fd for p*.dat
 extern int id;// node's id, common.c
 int* shm_addr = NULL;
 
@@ -53,7 +55,6 @@ do_client_task(int mode)
 						{
 								close(fd);
 								shmdt(shm_addr);
-								//signal to parent
 								break;
 						}
 						shm_addr[id] = data[0];//write data
@@ -65,6 +66,7 @@ do_client_task(int mode)
 		else if(mode == MODE_SVOR)
 		{
 		}
-		exit(SUCCESS);
+		exit(SUCCESS);//no return!, do_client_task is called inside of for-loop with fork() common.c:24
+		//parent's SIGCHLD handler will kill servers
 }
 
