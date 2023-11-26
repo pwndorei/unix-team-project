@@ -16,6 +16,10 @@ static const char *dat[4] = {
 };
 static int fd = -1;
 static int* shm_addr = NULL;
+static int ser_buf[8] = {0, };
+extern int msgid[4];
+msgbuf msg;
+
 
 void
 do_server_task(int mode)
@@ -53,7 +57,22 @@ do_server_task(int mode)
 		}
 		else if(mode == MODE_SVOR)
 		{
-
+			while(1)
+			{
+				raise(SIGSTOP);  // wait until msg queue is full, signal by parent
+				for (int i = 0; i < 8; i++)
+				{	
+					nbyte = msgrcv(msgid[id], &msg, sizeof(int), -7, 0);
+					if (nbyte == -1)
+					{
+						perror("msgrcv");
+						exit(-1);
+					}
+					ser_buf[msg.mtype] = msg.mtext[0];
+				}
+				write(fd, ser_buf, CHKSIZE);  // write data to file
+				kill(parent, SIGUSR2);
+			}
 		}
 		exit(0);//no return!, do_client_task is called inside of for-loop with fork() common.c:24
 }
