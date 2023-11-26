@@ -41,6 +41,7 @@ do_client_task(int mode)
 		int data[2] = {0,};
 		int nbyte = 0;
 		int msgi = 0;
+		int i = 0;
 		//open p*.dat file
 		raise(SIGSTOP);//wait until server ready
 		fd = open(dat[id], O_RDONLY);
@@ -108,10 +109,10 @@ do_client_task(int mode)
 				// send two data
 				msg.mtext[0] = data[0];
 				msg.mtype = id;
-				msgsnd(msgid[msgi], msg, sizeof(int), 0);
+				msgsnd(msgid[msgi], &msg, sizeof(int), 0);
 				msg.mtext[0] = data[1];
 				msg.mtype = id + NODENUM;
-				msgsnd(msgid[msgi++], msg, sizeof(int), 0);
+				msgsnd(msgid[msgi++], &msg, sizeof(int), 0);
 				msgi %= NODENUM;
 
 				kill(parent, SIGUSR1);//send SIGUSR1 to parent, notify "data is written!"
