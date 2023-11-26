@@ -1,10 +1,13 @@
 #include <stdio.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <signal.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <sys/wait.h>
 
 #define NODENUM  4
 #define CHKSIZE 0x20// 32bytes(8 int)
@@ -29,7 +32,7 @@ int client_oriented_io();
 int server_oriented_io();
 
 //for initialize Nodes
-int gen_node(pid_t[], int);
+int gen_node(pid_t[], int, int(*)());
 
 void gen_key();
 
@@ -44,3 +47,12 @@ void do_client_task(int);
 
 //for server
 void do_server_task(int);
+
+
+//sighandler for parent
+void client_write_complete(int);//SIGUSR1 handler
+void server_read_complete(int);//SIGUSR2 handler
+void shutdown(int);//SIGINT handler
+
+//sighandler for client
+

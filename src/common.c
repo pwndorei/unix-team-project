@@ -10,7 +10,7 @@ int id;//id for node
 
 
 int
-gen_node(pid_t pids[], int n)
+gen_node(pid_t pids[], int n, int(*task)())
 {
 		//create n children, return value for their ID
 		int i = 0;
@@ -20,8 +20,9 @@ gen_node(pid_t pids[], int n)
 				pid = fork();
 				if(!pid)
 				{
-						id = i;
-						return i; //if child process -> return i
+						id = i;//extern int id at server.c & client.c
+						task()//do_client_task or do_server_task, no return(just exit)
+						exit(-1);//Hoxy Molla
 				}
 				pids[i] = pid;
 		}
