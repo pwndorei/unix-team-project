@@ -22,7 +22,10 @@
 #define E_SHMAT_FAILED 0x22
 //error(message queue) 0x4?
 
-
+typedef struct{
+    long mtype;
+    int mtext[1]
+}msgbuf;
 
 int create_source_data();
 int client_oriented_io();
