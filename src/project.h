@@ -16,11 +16,14 @@
 #define MODE_SVOR 1
 
 
-
-typedef struct{
-    long mtype;
-    int mtext[1]
+typedef struct _msg
+{
+		long mtype;
+		int mtext;
 }msgbuf;
+
+
+
 
 int create_source_data();
 int client_oriented_io();
