@@ -18,6 +18,7 @@ static const char *dat[4] = {
 
 static int fd = -1;//fd for p*.dat
 extern int id;// node's id, common.c
+extern int shmid;
 static int* shm_addr = NULL;
 extern int msgid[4];
 static int msgi = 0;
@@ -39,6 +40,7 @@ do_client_task(int mode)
 		pid_t parent = getppid();
 		int data[2] = {0,};
 		int nbyte = 0;
+		int msgi = 0;
 		//open p*.dat file
 		raise(SIGSTOP);//wait until server ready
 		fd = open(dat[id], O_RDONLY);
@@ -82,7 +84,6 @@ do_client_task(int mode)
 						raise(SIGSTOP);//stop until parent's SIGCONT
 				}
 		}
-
 
 		else if(mode == MODE_SVOR)
 		{
