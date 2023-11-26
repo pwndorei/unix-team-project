@@ -100,9 +100,6 @@ do_client_task(int mode)
 				else if (!nbyte)//end-of-file
 				{
 					close(fd);  // close client's own file
-					for (i = 0; i < 4; i++)  // delete four msg queues
-						msgctl(msgid[i], IPC_RMID, (struct msqid_ds*)NULL);
-
 					//signal to parent
 					break;
 				}
