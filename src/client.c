@@ -64,6 +64,55 @@ do_client_task(int mode)
 		}
 		else if(mode == MODE_SVOR)
 		{
+			for (i = 0; i < 4; i++)  // creating msg queue #1 ~ #4, for server #1 ~ #4
+			{
+				msgid[i] = msgget(msgqid) + i, 0644 | IPC_CREAT | IPC_EXCL);
+				if (msgid[i] == -1)
+				{
+					perror("Msg queue");
+					exit(-1);
+				}
+			}
+	
+			fd = open(dat[id], O_RDONLY);
+			if (fd == -1)
+			{
+				perror("Open file:");
+				exit(-1);
+			}
+	
+			msgi = 0;
+	
+			while (1)  // send data to msg queue #1 ~ #4
+			{
+				nbyte = read(fd, &data, sizeof(int) * 2);
+				if (nbyte == -1)
+				{
+					perror("Read file");
+					exit(-1);
+				}
+				else if (!nbyte)//end-of-file
+				{
+					close(fd);  // close client's own file
+					for (i = 0; i < 4; i++)  // delete four msg queues
+						msgctl(msgid[i], IPC_RMID, (struct msqid_ds*)NULL);
+	
+					//signal to parent
+					break;
+				}
+				// send two data
+				msg.mtext[0] = data[0];
+				msg.mtype = id;
+				msgsnd(msgid[msgi], msg, sizeof(int), 0);
+				msg.mtext[0] = data[1];
+				msg.mtype = id + NODENUM;
+				msgsnd(msgid[msgi++], msg, sizeof(int), 0);
+				msgi %= NODENUM;
+	
+				kill(parent, SIGUSR1);//send SIGUSR1 to parent, notify "data is written!"
+				raise(SIGSTOP);//stop until parent's SIGCONT
+	
+			}
 		}
 		exit(SUCCESS);
 }
