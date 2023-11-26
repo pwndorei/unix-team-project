@@ -19,6 +19,9 @@ static const char *dat[4] = {
 static int fd = -1;//fd for p*.dat
 extern int id;// node's id, common.c
 static int* shm_addr = NULL;
+extern int msgid[4];
+static int msgi = 0;
+msgbuf msg;
 
 /*
  * signal for sync (Client-Oriented)
@@ -80,11 +83,13 @@ do_client_task(int mode)
 				}
 		}
 
-		msgi = 0;
+
 		else if(mode == MODE_SVOR)
 		{
+			msgi = 0;
 			while (1)  // send data to msg queue #1 ~ #4
 			{
+
 				nbyte = read(fd, &data, sizeof(int) * 2);
 				if (nbyte == -1)
 				{
