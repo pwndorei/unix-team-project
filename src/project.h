@@ -19,7 +19,7 @@
 typedef struct _msg
 {
 		long mtype;
-		int mtext;
+		int mtext[1];
 }msgbuf;
 
 
