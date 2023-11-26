@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/wait.h>
+#include <sys/time.h>
 
 #define NODENUM  4
 #define CHKSIZE 0x20// 32bytes(8 int)
@@ -54,3 +55,8 @@ void shutdown(int);//SIGINT handler
 
 //sighandler for client
 
+
+
+//time measurement function
+void start_timer(struct timeval *timer);
+void stop_timer(struct timeval *start_time, const char *label);
