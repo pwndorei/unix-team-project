@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <stdlib.h>
 #include <sys/shm.h>
 #include <errno.h>
 #include "project.h"
@@ -9,8 +10,8 @@ const int proj_id = 0x41;//temp id
 int id;//id for node
 
 
-int
-gen_node(pid_t pids[], int n, int(*task)())
+void
+gen_node(pid_t pids[], int n, void(*task)(int), int mode)
 {
 		//create n children, return value for their ID
 		int i = 0;
@@ -21,13 +22,12 @@ gen_node(pid_t pids[], int n, int(*task)())
 				if(!pid)
 				{
 						id = i;//extern int id at server.c & client.c
-						task()//do_client_task or do_server_task, no return(just exit)
+						task(mode);//do_client_task or do_server_task, no return(just exit)
 						exit(-1);//Hoxy Molla
 				}
 				pids[i] = pid;
+				setpgid(pid, pids[0]);//set group id -> first client/server
 		}
-
-		return -1; // parent return -1
 }
 
 void

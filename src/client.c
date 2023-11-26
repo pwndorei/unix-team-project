@@ -16,7 +16,7 @@ static const char *dat[4] = {
 
 static int fd = -1;//fd for p*.dat
 extern int id;// node's id, common.c
-int* shm_addr = NULL;
+static int* shm_addr = NULL;
 
 /*
  * signal for sync (Client-Oriented)
@@ -35,21 +35,31 @@ do_client_task(int mode)
 		int data[2] = {0,};
 		int nbyte = 0;
 		//open p*.dat file
+		raise(SIGSTOP);
 		fd = open(dat[id], O_RDONLY);
 		if(fd == -1)
 		{
-				exit(E_OPEN_FILE);
+				perror(dat[id]);
+				exit(-1);
 		}
 
 		if(mode == MODE_CLOR)
 		{
 				shm_addr = shmat(shmid, NULL, 0);
+				if(shm_addr == (void*)-1)
+				{
+						perror("shmat");
+						exit(-1);
+				}
 				while(1)
 				{
 						nbyte = read(fd, &data, sizeof(int)*2);
+#ifdef DEBUG
+						printf("client[%d]: data->%d,%d\n", id, data[0], data[1]);
+#endif
 						if(nbyte == -1)
 						{
-								exit(E_READ_FILE);
+								exit(-1);
 						}
 						else if(!nbyte)//end-of-file
 						{
@@ -60,13 +70,15 @@ do_client_task(int mode)
 						shm_addr[id] = data[0];//write data
 						shm_addr[id + NODENUM] = data[1];
 						kill(parent, SIGUSR1);//send SIGUSR1 to parent, notify "data is written!"
+#ifdef DEBUG
+						printf("client[%d]: SIGUSR1 sent to parent(%d)\n", id, parent);
+#endif
 						raise(SIGSTOP);//stop until parent's SIGCONT
 				}
 		}
 		else if(mode == MODE_SVOR)
 		{
 		}
-		exit(SUCCESS);//no return!, do_client_task is called inside of for-loop with fork() common.c:24
+		exit(0);//no return!, do_client_task is called inside of for-loop with fork() common.c:24
 		//parent's SIGCHLD handler will kill servers
 }
-
