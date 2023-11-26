@@ -9,17 +9,16 @@
 #include <fcntl.h>
 #include "project.h"
 
-extern int shmid;
-extern int msgqid;
+static const char *dat[4] = {
+		"p1.dat", 
+		"p2.dat", 
+		"p3.dat", 
+		"p4.dat"
+};
 
-const char* dat[4] = { "p1.dat",
-					  "p2.dat",
-					  "p3.dat",
-					  "p4.dat" };
-
-int fd = -1;//fd for p*.dat
+static int fd = -1;//fd for p*.dat
 extern int id;// node's id, common.c
-int* shm_addr = NULL;
+static int* shm_addr = NULL;
 
 /*
  * signal for sync (Client-Oriented)
@@ -34,58 +33,51 @@ int* shm_addr = NULL;
 void
 do_client_task(int mode)
 {
-	pid_t parent = getppid();
-	int data[2] = { 0, };
-	int nbyte = 0;
-	int i, msgi, msgid[4];
-	msgbuf msg;
-	//open p*.dat file
-	fd = open(dat[id], O_RDONLY);
-	if (fd == -1)
-	{
-		exit(E_OPEN_FILE);
-	}
-
-	if (mode == MODE_CLOR)
-	{
-		shm_addr = shmat(shmid, NULL, 0);
-		while (1)
+		pid_t parent = getppid();
+		int data[2] = {0,};
+		int nbyte = 0;
+		//open p*.dat file
+		raise(SIGSTOP);
+		fd = open(dat[id], O_RDONLY);
+		if(fd == -1)
 		{
-			nbyte = read(fd, &data, sizeof(int) * 2);
-			if (nbyte == -1)
-			{
-				exit(E_READ_FILE);
-			}
-			else if (!nbyte)//end-of-file
-			{
-				close(fd);
-				shmdt(shm_addr);
-				//signal to parent
-				break;
-			}
-			shm_addr[id] = data[0];//write data
-			shm_addr[id + NODENUM] = data[1];
-			kill(parent, SIGUSR1);//send SIGUSR1 to parent, notify "data is written!"
-			raise(SIGSTOP);//stop until parent's SIGCONT
-		}
-	}
-	else if (mode == MODE_SVOR)
-	{
-		for (i = 0; i < 4; i++)  // creating msg queue #1 ~ #4, for server #1 ~ #4
-		{
-			msgid[i] = msgget(msgqid) + i, 0644 | IPC_CREAT | IPC_EXCL);
-			if (msgid[i] == -1)
-			{
-				perror("Msg queue");
+				perror(dat[id]);
 				exit(-1);
-			}
 		}
 
 		fd = open(dat[id], O_RDONLY);
 		if (fd == -1)
 		{
-			perror("Open file:");
-			exit(-1);
+				shm_addr = shmat(shmid, NULL, 0);
+				if(shm_addr == (void*)-1)
+				{
+						perror("shmat");
+						exit(-1);
+				}
+				while(1)
+				{
+						nbyte = read(fd, &data, sizeof(int)*2);
+#ifdef DEBUG
+						printf("client[%d]: data->%d,%d\n", id, data[0], data[1]);
+#endif
+						if(nbyte == -1)
+						{
+								exit(-1);
+						}
+						else if(!nbyte)//end-of-file
+						{
+								close(fd);
+								shmdt(shm_addr);
+								break;
+						}
+						shm_addr[id] = data[0];//write data
+						shm_addr[id + NODENUM] = data[1];
+						kill(parent, SIGUSR1);//send SIGUSR1 to parent, notify "data is written!"
+#ifdef DEBUG
+						printf("client[%d]: SIGUSR1 sent to parent(%d)\n", id, parent);
+#endif
+						raise(SIGSTOP);//stop until parent's SIGCONT
+				}
 		}
 
 		msgi = 0;
@@ -120,6 +112,6 @@ do_client_task(int mode)
 			raise(SIGSTOP);//stop until parent's SIGCONT
 
 		}
-	}
-	exit(SUCCESS);
+		exit(0);//no return!, do_client_task is called inside of for-loop with fork() common.c:24
+		//parent's SIGCHLD handler will kill servers
 }
