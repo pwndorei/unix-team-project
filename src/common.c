@@ -1,8 +1,10 @@
+#include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <sys/shm.h>
 #include <errno.h>
 #include "project.h"
+#include <sys/time.h>
 
 key_t key = 0; // key, used when creating/getting shm, msg queue
 int shmid = 0; //shared memory id
@@ -50,3 +52,30 @@ create_shm()
 				exit(-1);
 		}
 }
+
+
+//time measurement function
+// 시간 측정을 시작하는 함수
+void start_timer(struct timeval *timer) {
+#ifdef TIMES
+    gettimeofday(timer, NULL);
+#endif
+}
+
+// 시간 측정을 종료하고 결과를 출력하는 함수
+void stop_timer(struct timeval *start_time, const char *label) {
+#ifdef TIMES
+    struct timeval end_time;
+    gettimeofday(&end_time, NULL);
+
+    int time_result = end_time.tv_usec - start_time->tv_usec;
+    printf("%s TIMES == %ld %ld %ld\n", label, end_time.tv_usec, start_time->tv_usec, time_result);
+#endif
+}
+/*
+main using example
+struct timeval io_start;
+start_timer(&io_start);
+stop_timer(&io_start, "IO");
+
+*/
