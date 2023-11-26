@@ -18,6 +18,7 @@ static const char *dat[4] = {
 
 static int fd = -1;//fd for p*.dat
 extern int id;// node's id, common.c
+extern int shmid;
 static int* shm_addr = NULL;
 
 /*
@@ -36,6 +37,7 @@ do_client_task(int mode)
 		pid_t parent = getppid();
 		int data[2] = {0,};
 		int nbyte = 0;
+		int msgi = 0;
 		//open p*.dat file
 		raise(SIGSTOP);//wait until server ready
 		fd = open(dat[id], O_RDONLY);
@@ -80,7 +82,6 @@ do_client_task(int mode)
 				}
 		}
 
-		msgi = 0;
 		else if(mode == MODE_SVOR)
 		{
 			while (1)  // send data to msg queue #1 ~ #4
