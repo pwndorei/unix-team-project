@@ -43,6 +43,7 @@ do_client_task(int mode)
 	int data[2] = { 0, };
 	int nbyte = 0;
 	int i, msgi, msgid[4];
+	msgbuf msg;
 	//open p*.dat file
 	fd = open(dat[id], O_RDONLY);
 	if (fd == -1)
