@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include <sys/shm.h>
+#include <sys/msg.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -18,7 +19,6 @@ static int fd = -1;
 static int* shm_addr = NULL;
 static int ser_buf[8] = {0, };
 extern int msgid[4];
-msgbuf msg;
 
 
 void
@@ -57,6 +57,7 @@ do_server_task(int mode)
 		}
 		else if(mode == MODE_SVOR)
 		{
+		    msgbuf msg;
 			while(1)
 			{
 				raise(SIGSTOP);  // wait until msg queue is full, signal by parent

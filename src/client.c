@@ -22,7 +22,6 @@ extern int shmid;
 static int* shm_addr = NULL;
 extern int msgid[4];
 static int msgi = 0;
-msgbuf msg;
 
 /*
  * signal for sync (Client-Oriented)
@@ -90,6 +89,7 @@ do_client_task(int mode)
 		{
 			while (1)  // send data to msg queue #1 ~ #4
 			{
+				msgbuf msg;
 
 				nbyte = read(fd, &data, sizeof(int) * 2);
 				if (nbyte == -1)
