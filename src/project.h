@@ -17,7 +17,10 @@
 
 
 
-
+typedef struct{
+    long mtype;
+    int mtext[1]
+}msgbuf;
 
 int create_source_data();
 int client_oriented_io();
