@@ -19,6 +19,11 @@ pid_t clients[NODENUM] = {0,};
 int
 main()
 {
+#ifdef DEBUG
+		printf("parent pid: %d\n",getpid());
+#endif
+		create_source_data();
+		client_oriented_io();
 }
 
 
@@ -30,8 +35,15 @@ client_write_complete(int sig)
 		//SIGUSR1 Handler
 		cnt += 1;
 
+#ifdef DEBUG
+		puts("parent: SIGUSR1 caught");
+#endif
+
 		if(cnt == NODENUM)
 		{
+#ifdef DEBUG
+				printf("parent: send SIGCONT to server %d\n", order);
+#endif
 				kill(servers[order], SIGCONT);//resume server process
 				order = (order + 1) % NODENUM;
 				cnt = 0;
@@ -43,6 +55,9 @@ server_read_complete(int sig)
 {
 		//SIGUSR2 Handler
 		int i = 0;
+#ifdef DEBUG
+		puts("parent: server complete reading, wake all clients");
+#endif
 
 		for(i = 0;i < NODENUM;i++)//resume all clients
 		{
@@ -90,6 +105,9 @@ on_child_exit(int sig)
 		{
 				if(clients[i] == exited_child)
 				{
+#ifdef DEBUG
+						printf("parent: client[%d] exited\n", i);
+#endif
 						clients[i] = 0;
 						break;
 				}
@@ -99,6 +117,11 @@ on_child_exit(int sig)
 				if(clients[i]) return;
 		}
 		//no return in for-loop -> all clients are terminated
+
+#ifdef DEBUG
+		puts("parent: all clients exited, kill all servers");
+#endif
+
 		//terminated servers
 		for(i = 0; i < NODENUM; i++)
 		{
@@ -110,6 +133,7 @@ on_child_exit(int sig)
 				}
 		}
 		
+		exit(0);
 }
 
 int
@@ -122,17 +146,36 @@ client_oriented_io()
 		act.sa_handler = client_write_complete;
 		sigaction(SIGUSR1, &act, NULL);
 
+		act.sa_flags = 0;
+		sigemptyset(&(act.sa_mask));
 		act.sa_handler = server_read_complete;
 		sigaction(SIGUSR2, &act, NULL);
 
+		act.sa_flags = 0;
+		sigemptyset(&(act.sa_mask));
 		act.sa_handler = shutdown;
 		sigaction(SIGINT, &act, NULL);
 
 		act.sa_handler = on_child_exit;
+		sigemptyset(&(act.sa_mask));
 		act.sa_flags = SA_NOCLDSTOP;
 		sigaction(SIGCHLD, &act, NULL);
 
 		create_shm();//create shared memory
+#ifdef DEBUG
+		puts("Start");
+#endif
+
+		gen_node(servers, NODENUM, do_server_task, MODE_CLOR);
+		gen_node(clients, NODENUM, do_client_task, MODE_CLOR);
+
+		kill(-clients[0], SIGCONT);
+
+
+		while(1)
+		{
+				pause();
+		}
 
 		return 0;
 }
