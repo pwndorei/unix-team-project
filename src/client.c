@@ -86,7 +86,6 @@ do_client_task(int mode)
 
 		else if(mode == MODE_SVOR)
 		{
-			msgi = 0;
 			while (1)  // send data to msg queue #1 ~ #4
 			{
 
