@@ -7,7 +7,7 @@
 #include <sys/shm.h>
 #include <sys/wait.h>
 #include "project.h"
-
+#include <sys/time.h>
 
 extern key_t key; //declared in common.c
 int cnt = 0; //for client-oriented, check chunk completion
@@ -22,8 +22,18 @@ main()
 #ifdef DEBUG
 		printf("parent pid: %d\n",getpid());
 #endif
+
+		struct timeval io_start;
 		create_source_data();
+
+		start_timer(&io_start);
 		client_oriented_io();
+		stop_timer(&io_start, "IO");
+		
+		start_timer(&io_start);
+		server_oriented_io();
+		stop_timer(&io_start, "IO");
+		
 }
 
 
