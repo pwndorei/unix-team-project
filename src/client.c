@@ -46,7 +46,7 @@ do_client_task(int mode)
 		}
 
 		fd = open(dat[id], O_RDONLY);
-		if (fd == -1)
+		if (mode == MODE_CLOR)
 		{
 				shm_addr = shmat(shmid, NULL, 0);
 				if(shm_addr == (void*)-1)
@@ -81,37 +81,39 @@ do_client_task(int mode)
 		}
 
 		msgi = 0;
-
-		while (1)  // send data to msg queue #1 ~ #4
+		else if(mode == MODE_SVOR)
 		{
-			nbyte = read(fd, &data, sizeof(int) * 2);
-			if (nbyte == -1)
+			while (1)  // send data to msg queue #1 ~ #4
 			{
-				perror("Read file");
-				exit(-1);
+				nbyte = read(fd, &data, sizeof(int) * 2);
+				if (nbyte == -1)
+				{
+					perror("Read file");
+					exit(-1);
+				}
+				else if (!nbyte)//end-of-file
+				{
+					close(fd);  // close client's own file
+					for (i = 0; i < 4; i++)  // delete four msg queues
+						msgctl(msgid[i], IPC_RMID, (struct msqid_ds*)NULL);
+
+					//signal to parent
+					break;
+				}
+				// send two data
+				msg.mtext[0] = data[0];
+				msg.mtype = id;
+				msgsnd(msgid[msgi], msg, sizeof(int), 0);
+				msg.mtext[0] = data[1];
+				msg.mtype = id + NODENUM;
+				msgsnd(msgid[msgi++], msg, sizeof(int), 0);
+				msgi %= NODENUM;
+
+				kill(parent, SIGUSR1);//send SIGUSR1 to parent, notify "data is written!"
+				raise(SIGSTOP);//stop until parent's SIGCONT
+	
 			}
-			else if (!nbyte)//end-of-file
-			{
-				close(fd);  // close client's own file
-				for (i = 0; i < 4; i++)  // delete four msg queues
-					msgctl(msgid[i], IPC_RMID, (struct msqid_ds*)NULL);
-
-				//signal to parent
-				break;
-			}
-			// send two data
-			msg.mtext[0] = data[0];
-			msg.mtype = id;
-			msgsnd(msgid[msgi], msg, sizeof(int), 0);
-			msg.mtext[0] = data[1];
-			msg.mtype = id + NODENUM;
-			msgsnd(msgid[msgi++], msg, sizeof(int), 0);
-			msgi %= NODENUM;
-
-			kill(parent, SIGUSR1);//send SIGUSR1 to parent, notify "data is written!"
-			raise(SIGSTOP);//stop until parent's SIGCONT
-
+			exit(0);//no return!, do_client_task is called inside of for-loop with fork() common.c:24
+			//parent's SIGCHLD handler will kill servers
 		}
-		exit(0);//no return!, do_client_task is called inside of for-loop with fork() common.c:24
-		//parent's SIGCHLD handler will kill servers
 }
