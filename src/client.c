@@ -37,7 +37,7 @@ do_client_task(int mode)
 		int data[2] = {0,};
 		int nbyte = 0;
 		//open p*.dat file
-		raise(SIGSTOP);
+		raise(SIGSTOP);//wait until server ready
 		fd = open(dat[id], O_RDONLY);
 		if(fd == -1)
 		{
