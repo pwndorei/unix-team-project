@@ -203,5 +203,10 @@ server_oriented_io()
 		act.sa_flags = SA_NOCLDSTOP;
 		sigaction(SIGCHLD, &act, NULL);
 
+		create_msg_queue();
+
+		gen_node(servers, NODENUM, do_server_task, MODE_SVOR);
+		gen_node(clients, NODENUM, do_client_task, MODE_SVOR);
+
 		return 0;
 }
