@@ -51,9 +51,6 @@ client_write_complete(int sig)
 
 		if(cnt == NODENUM)
 		{
-#ifdef DEBUG
-				printf("parent: send SIGCONT to server %d\n", order);
-#endif
 				kill(servers[order], SIGCONT);//resume server process
 				order = (order + 1) % NODENUM;
 				cnt = 0;
@@ -64,15 +61,10 @@ void
 server_read_complete(int sig)
 {
 		//SIGUSR2 Handler
-		int i = 0;
 #ifdef DEBUG
 		puts("parent: server complete reading, wake all clients");
 #endif
-
-		for(i = 0;i < NODENUM;i++)//resume all clients
-		{
-				kill(clients[i], SIGCONT);
-		}
+		kill(-clients[0], SIGCONT);//send signal to client process group, set in gen_node(common.c)
 }
 
 void
@@ -188,6 +180,7 @@ client_oriented_io()
 		}
 
 		return 0;
+
 }
 
 int
