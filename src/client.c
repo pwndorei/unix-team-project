@@ -9,6 +9,9 @@
 #include <fcntl.h>
 #include "project.h"
 
+#define RDEND 0
+#define WREND 1
+
 static const char *dat[4] = {
 		"p1.dat", 
 		"p2.dat", 
@@ -22,6 +25,8 @@ extern int shmid;
 static int* shm_addr = NULL;
 extern int msgid[4];
 static int msgi = 0;
+extern int client_pipe[2];
+static pid_t parent;
 
 /*
  * signal for sync (Client-Oriented)
@@ -32,25 +37,93 @@ static int msgi = 0;
  * parent: send SIGUSR1 to all client, resume execution
 */
 
+static void
+client_worker(int sig)
+{
+		//SIGUSR1 Handler
+#ifdef DEBUG
+		puts("client: worker");
+#endif
+
+		struct flock lock = {.l_whence=SEEK_SET, .l_len=0, .l_start=0};
+		int nbytes = 0;
+		int data[2] = {0,};
+
+		nbytes = read(fd, data, 8);
+		if(nbytes == 0)
+		{
+				puts("client: EOF");
+				exit(0);
+		}
+		shm_addr[id] = data[0];//write data
+		shm_addr[id + NODENUM] = data[1];
+
+}
+
+static void
+client_leader(int sig)
+{
+#ifdef DEBUG
+		puts("client: leader");
+#endif
+		int nbytes = 0;
+		int data[2] = {0,};
+		int i = 0;
+		char buf;
+		nbytes = read(fd, data, 8);
+		shm_addr[id] = data[0];//write data
+		shm_addr[id + NODENUM] = data[1];
+		kill(-getpid(), SIGUSR1);
+		
+		if(nbytes == 0)
+		{
+				kill(parent, SIGINT);
+				exit(0);
+		}
+
+		for(i = 0; i < NODENUM-1 ; i++)
+		{
+				do
+				{
+						nbytes = read(client_pipe[RDEND], &buf, 1);
+#ifdef DEBUG
+						if(nbytes == -1)
+						{
+								perror("client leader: read return -1 ");
+						}
+#endif
+				}while(nbytes == -1);
+		}
+
+#ifdef DEBUG
+		puts("client: chunk write complete");
+#endif
+
+
+		kill(parent, SIGUSR1);
+}
+
 
 void
 do_client_task(int mode)
 {
-		pid_t parent = getppid();
+		struct sigaction act = {0,};
+		parent = getppid();
 		int data[2] = {0,};
 		int nbyte = 0;
 		int msgi = 0;
 		int i = 0;
+		struct flock lock = {.l_whence=SEEK_SET, .l_len=0, .l_start=0};
+		long buf = 0;
 		//open p*.dat file
-		raise(SIGSTOP);//wait until server ready
 		fd = open(dat[id], O_RDONLY);
+		act.sa_handler = client_worker;
+		sigaction(SIGUSR1, &act, NULL);
 		if(fd == -1)
 		{
 				perror(dat[id]);
 				exit(-1);
 		}
-
-		fd = open(dat[id], O_RDONLY);
 		if (mode == MODE_CLOR)
 		{
 				shm_addr = shmat(shmid, NULL, 0);
@@ -59,30 +132,51 @@ do_client_task(int mode)
 						perror("shmat");
 						exit(-1);
 				}
-				while(1)
+				if(id == 0)
 				{
-						nbyte = read(fd, &data, sizeof(int)*2);
-#ifdef DEBUG
-						printf("client[%d]: data->%d,%d\n", id, data[0], data[1]);
-#endif
-						if(nbyte == -1)
+
+						act.sa_handler = client_leader;
+						sigaction(SIGUSR2, &act, NULL);
+						act.sa_handler = SIG_IGN;
+						sigaction(SIGUSR1, &act, NULL);
+
+						while(1)
 						{
-								exit(-1);
+								pause();
 						}
-						else if(!nbyte)//end-of-file
-						{
-								close(fd);
-								shmdt(shm_addr);
-								break;
-						}
-						shm_addr[id] = data[0];//write data
-						shm_addr[id + NODENUM] = data[1];
-						kill(parent, SIGUSR1);//send SIGUSR1 to parent, notify "data is written!"
-#ifdef DEBUG
-						printf("client[%d]: SIGUSR1 sent to parent(%d)\n", id, parent);
-#endif
-						raise(SIGSTOP);//stop until parent's SIGCONT
+
+
 				}
+				else
+				{
+
+						while(1)
+						{
+								pause();
+
+								lock.l_type = F_WRLCK;
+								lock.l_len = 0;
+								lock.l_start = 0;
+								lock.l_whence = SEEK_SET;
+								fcntl(client_pipe[WREND], F_SETLKW, &lock);
+#ifdef DEBUG
+								printf("client[%d]: get lock\n", id);
+#endif
+
+								write(client_pipe[WREND], "\0", 1);
+
+								lock.l_type = F_UNLCK;
+								lock.l_len = 0;
+								lock.l_start = 0;
+								lock.l_whence = SEEK_SET;
+#ifdef DEBUG
+								printf("client[%d]: release lock\n", id);
+#endif
+								fcntl(client_pipe[WREND], F_SETLKW, &lock);
+
+						}
+				}
+				exit(0);
 		}
 
 		else if(mode == MODE_SVOR)
