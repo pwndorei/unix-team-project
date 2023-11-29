@@ -49,7 +49,7 @@ client_write_complete(int sig)
 		puts("parent: SIGUSR1 caught");
 #endif
 
-		kill(servers[order], SIGCONT);//resume server process
+		kill(servers[order], SIGUSR1);//resume server process
 		order = (order + 1) % NODENUM;
 }
 
@@ -63,7 +63,7 @@ server_read_complete(int sig)
 		kill(clients[0], SIGUSR2);
 }
 
-void
+static void
 shutdown(int sig)
 {
 		int i = 0;
@@ -90,53 +90,13 @@ shutdown(int sig)
 		exit(0);
 }
 
-void
-on_child_exit(int sig)
-{
-		//SIGCHLD handler
-		//SA_NOCLDSTOP -> ignore children's SIGSTOP & SIGCONT
-
-		int i = 0;
-		int exit_code = 0;
-		pid_t exited_child = wait(&exit_code);
-		for(i = 0;i < NODENUM; i++)
-		{
-				if(clients[i] == exited_child)
-				{
-#ifdef DEBUG
-						printf("parent: client[%d] exited\n", i);
-#endif
-						clients[i] = 0;
-						break;
-				}
-		}
-		for(i = 0;i < NODENUM; i++)
-		{
-				if(clients[i]) return;
-		}
-		//no return in for-loop -> all clients are terminated
-
-#ifdef DEBUG
-		puts("parent: all clients exited, kill all servers");
-#endif
-
-		//terminated servers
-		for(i = 0; i < NODENUM; i++)
-		{
-				if(servers[i])
-				{
-						kill(servers[i], SIGINT);
-						waitpid(servers[i], NULL, 0);
-						servers[i] = 0;
-				}
-		}
-		
-		exit(0);
-}
 
 int
 client_oriented_io()
 {
+
+		mode = MODE_CLOR;
+
 		//register signal handler for SIGUSR1(from client), SIGUSR2(from server)
 
 		struct sigaction act = {0,};
@@ -180,14 +140,12 @@ int
 server_oriented_io()
 {
 
+		mode = MODE_SVOR;
+
 		struct sigaction act = {0,};
 
 		act.sa_handler = shutdown;
 		sigaction(SIGINT, &act, NULL);
-
-		act.sa_handler = on_child_exit;
-		act.sa_flags = SA_NOCLDSTOP;
-		sigaction(SIGCHLD, &act, NULL);
 
 		return 0;
 }

@@ -51,10 +51,6 @@ void do_server_task(int);
 //sighandler for parent
 void client_write_complete(int);//SIGUSR1 handler
 void server_read_complete(int);//SIGUSR2 handler
-void shutdown(int);//SIGINT handler
-
-//sighandler for client
-
 
 
 //time measurement function
