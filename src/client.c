@@ -58,6 +58,26 @@ client_worker(int sig)
 		shm_addr[id] = data[0];//write data
 		shm_addr[id + NODENUM] = data[1];
 
+		lock.l_type = F_WRLCK;
+		lock.l_len = 0;
+		lock.l_start = 0;
+		lock.l_whence = SEEK_SET;
+		fcntl(client_pipe[WREND], F_SETLKW, &lock);
+#ifdef DEBUG
+		puts("client worker: get lock");
+#endif
+
+		write(client_pipe[WREND], "\0", 1);
+
+		lock.l_type = F_UNLCK;
+		lock.l_len = 0;
+		lock.l_start = 0;
+		lock.l_whence = SEEK_SET;
+#ifdef DEBUG
+		puts("client worker: release lock");
+#endif
+		fcntl(client_pipe[WREND], F_SETLKW, &lock);
+
 }
 
 static void
@@ -99,8 +119,8 @@ client_leader(int sig)
 		puts("client: chunk write complete");
 #endif
 
-
 		kill(parent, SIGUSR1);
+
 }
 
 
@@ -118,6 +138,7 @@ do_client_task(int mode)
 		//open p*.dat file
 		fd = open(dat[id], O_RDONLY);
 		act.sa_handler = client_worker;
+		act.sa_flags = SA_NODEFER;
 		sigaction(SIGUSR1, &act, NULL);
 		if(fd == -1)
 		{
@@ -153,26 +174,6 @@ do_client_task(int mode)
 						while(1)
 						{
 								pause();
-
-								lock.l_type = F_WRLCK;
-								lock.l_len = 0;
-								lock.l_start = 0;
-								lock.l_whence = SEEK_SET;
-								fcntl(client_pipe[WREND], F_SETLKW, &lock);
-#ifdef DEBUG
-								printf("client[%d]: get lock\n", id);
-#endif
-
-								write(client_pipe[WREND], "\0", 1);
-
-								lock.l_type = F_UNLCK;
-								lock.l_len = 0;
-								lock.l_start = 0;
-								lock.l_whence = SEEK_SET;
-#ifdef DEBUG
-								printf("client[%d]: release lock\n", id);
-#endif
-								fcntl(client_pipe[WREND], F_SETLKW, &lock);
 
 						}
 				}
