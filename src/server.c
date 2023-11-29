@@ -8,7 +8,10 @@
 #include "project.h"
 
 extern int shmid;
+extern int msgid[4];
 extern int id;//in common.c, id for server
+extern int mode;//from project.c, indicate client/server-oriented mode
+
 static const char *dat[4] = {
 		"node1.dat",
 		"node2.dat",
@@ -18,16 +21,49 @@ static const char *dat[4] = {
 static int fd = -1;
 static int* shm_addr = NULL;
 static int ser_buf[8] = {0, };
-extern int msgid[4];
+static pid_t parent;
+
+
+static void
+read_chunk_shm(int sig)
+{
+		//SIGUSR1 handler
+		write(fd, shm_addr, CHKSIZE);// write data
+#ifdef DEBUG
+		puts("server: read complete");
+#endif
+		kill(parent, SIGUSR2);//send SIGUSR2 to parent, notify "complete reading!"
+}
+
+static void
+shutdown(int sig)
+{
+		//SIGINT handler
+
+		if(mode == MODE_CLOR)
+		{
+				close(fd);
+				shmdt(shm_addr);
+		}
+
+		else if(mode == MODE_SVOR)
+		{
+		}
+
+		exit(0);
+}
 
 
 void
 do_server_task(int mode)
 {
-		pid_t parent = getppid();
+		parent = getppid();
 		int data[2] = {0,};
 		int nbyte = 0;
+		struct sigaction act = {0,};
 		fd = open(dat[id], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+		act.sa_handler = shutdown;
+		sigaction(SIGINT, &act, NULL);
 		if(fd == -1)
 		{
 				perror(dat[id]);
@@ -36,6 +72,10 @@ do_server_task(int mode)
 
 		if(mode == MODE_CLOR)
 		{
+				act.sa_handler = read_chunk_shm;
+				act.sa_flags = 0;
+				sigaction(SIGUSR1, &act, NULL);
+
 				shm_addr = shmat(shmid, NULL, 0);
 				if(shm_addr == (void*)-1)
 				{
@@ -44,15 +84,7 @@ do_server_task(int mode)
 				}
 				while(1)
 				{
-#ifdef DEBUG
-						printf("server[%d]: wait\n", id);
-#endif
-						raise(SIGSTOP);//stop until parent's SIGCONT
-						write(fd, shm_addr, CHKSIZE);// write data
-#ifdef DEBUG
-						printf("server[%d]: read complete\n", id);
-#endif
-						kill(parent, SIGUSR2);//send SIGUSR2 to parent, notify "complete reading!"
+						pause();
 				}
 		}
 		else if(mode == MODE_SVOR)
