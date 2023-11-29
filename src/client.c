@@ -19,14 +19,16 @@ static const char *dat[4] = {
 		"p4.dat"
 };
 
-static int fd = -1;//fd for p*.dat
 extern int id;// node's id, common.c
 extern int shmid;
-static int* shm_addr = NULL;
 extern int msgid[4];
 static int msgi = 0;
 extern int client_pipe[2];
+extern int mode;//from project.c, MODE_CLOR | MODE_SVOR
+
 static pid_t parent;
+static int* shm_addr = NULL;
+static int fd = -1;//fd for p*.dat
 
 /*
  * signal for sync (Client-Oriented)
@@ -36,6 +38,25 @@ static pid_t parent;
  * server: read chunk & write to file, send SIGUSR2 to parent
  * parent: send SIGUSR1 to all client, resume execution
 */
+
+static void
+shutdown(int sig)
+{
+		//SIGINT handler
+
+		if(mode == MODE_CLOR)
+		{
+				shmdt(shm_addr);
+				close(fd);//p*.dat
+				close(client_pipe[RDEND]);
+				close(client_pipe[WREND]);
+		}
+		else if(mode == MODE_SVOR)
+		{
+
+		}
+		exit(0);
+}
 
 static void
 client_worker(int sig)
@@ -137,9 +158,11 @@ do_client_task(int mode)
 		long buf = 0;
 		//open p*.dat file
 		fd = open(dat[id], O_RDONLY);
-		act.sa_handler = client_worker;
-		act.sa_flags = SA_NODEFER;
-		sigaction(SIGUSR1, &act, NULL);
+
+		act.sa_handler = shutdown;
+		act.sa_flags = 0;
+		sigaction(SIGINT, &act, NULL);
+
 		if(fd == -1)
 		{
 				perror(dat[id]);
@@ -147,35 +170,28 @@ do_client_task(int mode)
 		}
 		if (mode == MODE_CLOR)
 		{
+				act.sa_handler = client_worker;
+				act.sa_flags = SA_NODEFER;
+				sigaction(SIGUSR1, &act, NULL);
+
 				shm_addr = shmat(shmid, NULL, 0);
 				if(shm_addr == (void*)-1)
 				{
 						perror("shmat");
 						exit(-1);
 				}
-				if(id == 0)
+				if(id == 0)//leader
 				{
-
 						act.sa_handler = client_leader;
 						sigaction(SIGUSR2, &act, NULL);
 						act.sa_handler = SIG_IGN;
 						sigaction(SIGUSR1, &act, NULL);
-
-						while(1)
-						{
-								pause();
-						}
-
-
 				}
-				else
+
+				while(1)
 				{
+						pause();
 
-						while(1)
-						{
-								pause();
-
-						}
 				}
 				exit(0);
 		}
