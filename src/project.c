@@ -15,6 +15,7 @@ int order = 0;//for client-oriented, id of server to resume execution(read chunk
 int mode = -1;//Client-Oriented(MODE_CLOR) or Server-Oriented(MODE_SVOR)
 pid_t servers[NODENUM] = {0,};
 pid_t clients[NODENUM] = {0,};
+extern int client_pipe[2];
 
 int
 main()
@@ -43,18 +44,13 @@ void
 client_write_complete(int sig)
 {
 		//SIGUSR1 Handler
-		cnt += 1;
 
 #ifdef DEBUG
 		puts("parent: SIGUSR1 caught");
 #endif
 
-		if(cnt == NODENUM)
-		{
-				kill(servers[order], SIGCONT);//resume server process
-				order = (order + 1) % NODENUM;
-				cnt = 0;
-		}
+		kill(servers[order], SIGCONT);//resume server process
+		order = (order + 1) % NODENUM;
 }
 
 void
@@ -64,7 +60,7 @@ server_read_complete(int sig)
 #ifdef DEBUG
 		puts("parent: server complete reading, wake all clients");
 #endif
-		kill(-clients[0], SIGCONT);//send signal to client process group, set in gen_node(common.c)
+		kill(clients[0], SIGUSR2);
 }
 
 void
@@ -158,20 +154,17 @@ client_oriented_io()
 		act.sa_handler = shutdown;
 		sigaction(SIGINT, &act, NULL);
 
-		act.sa_handler = on_child_exit;
-		sigemptyset(&(act.sa_mask));
-		act.sa_flags = SA_NOCLDSTOP;
-		sigaction(SIGCHLD, &act, NULL);
-
 		create_shm();//create shared memory
 #ifdef DEBUG
 		puts("Start");
 #endif
 
 		gen_node(servers, NODENUM, do_server_task, MODE_CLOR);
+		pipe(client_pipe);
 		gen_node(clients, NODENUM, do_client_task, MODE_CLOR);
 
-		kill(-clients[0], SIGCONT);
+		sleep(1);
+		kill(clients[0], SIGUSR2);
 
 
 		while(1)
