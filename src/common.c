@@ -11,6 +11,7 @@ int shmid = 0; //shared memory id
 int msgid[NODENUM] = {0, };
 const int proj_id = 0x41;//temp id
 int id;//id for node
+int client_pipe[2];
 
 
 void
