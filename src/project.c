@@ -147,5 +147,8 @@ server_oriented_io()
 		act.sa_handler = shutdown;
 		sigaction(SIGINT, &act, NULL);
 
+		gen_node(servers, NODENUM, do_server_task, MODE_SVOR);
+		gen_node(clients, NODENUM, do_client_task, MODE_SVOR);
+  
 		return 0;
 }
