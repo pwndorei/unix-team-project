@@ -48,6 +48,12 @@ shutdown(int sig)
 
 		else if(mode == MODE_SVOR)
 		{
+				close(fd);
+				if (msgctl(msg_queue_id, IPC_RMID, NULL) == -1)
+				{
+       					perror("msgctl");
+        				exit(-1);
+				}
 		}
 
 		exit(0);

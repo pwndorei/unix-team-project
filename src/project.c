@@ -60,7 +60,14 @@ server_read_complete(int sig)
 #ifdef DEBUG
 		puts("parent: server complete reading, wake all clients");
 #endif
-		kill(clients[0], SIGUSR2);
+		if (mode == MODE_CLOR)
+				kill(clients[0], SIGUSR2);
+		else if (mode == MODE_SVOR)
+		{
+				for (int i = 0; i < NODENUM; i++)
+						kill(clients[i], SIGCONT);
+		}
+
 }
 
 static void
@@ -147,6 +154,7 @@ server_oriented_io()
 		act.sa_handler = shutdown;
 		sigaction(SIGINT, &act, NULL);
 
+		create_msgq();
 		gen_node(servers, NODENUM, do_server_task, MODE_SVOR);
 		gen_node(clients, NODENUM, do_client_task, MODE_SVOR);
   
