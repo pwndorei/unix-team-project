@@ -45,7 +45,8 @@ gen_key()
 
 void
 create_shm()
-{
+{		
+		gen_key();
 		shmid = shmget(key, CHKSIZE, IPC_CREAT | 0600);
 
 		if(shmid == -1 && errno != EEXIST)
