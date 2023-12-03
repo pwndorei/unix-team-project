@@ -34,7 +34,7 @@ gen_node(pid_t pids[], int n, void(*task)(int), int mode)
 }
 
 void
-gen_key()
+gen_gikey()
 {
 		if(key) return;
 
@@ -44,7 +44,8 @@ gen_key()
 
 void
 create_shm()
-{
+{		
+		gen_key();
 		shmid = shmget(key, CHKSIZE, IPC_CREAT | 0600);
 
 		if(shmid == -1 && errno != EEXIST)
@@ -53,6 +54,16 @@ create_shm()
 				exit(-1);
 		}
 }
+
+
+void create_msg_queue(){
+	
+
+
+}
+
+
+
 
 //time measurement function
 // 시간 측정을 시작하는 함수
