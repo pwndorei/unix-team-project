@@ -211,7 +211,7 @@ do_client_task(int mode)
 				else if (!nbyte)//end-of-file
 				{
 					close(fd);  // close client's own file
-					//signal to parent
+					//break to signal SIGCHLD to parent
 					break;
 				}
 				// send two data

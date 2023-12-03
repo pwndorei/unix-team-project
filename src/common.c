@@ -55,6 +55,20 @@ create_shm()
 		}
 }
 
+void
+create_msgq()
+{
+		for (int i = 0; i < NODENUM; i++)
+		{
+			msgid[i] = msgget(key + i, IPC_CREAT | 0600);
+			if (msgid[i] == -1)
+			{
+				perror("msgget");
+				exit(-1);
+			}
+		}
+}
+
 //time measurement function
 // 시간 측정을 시작하는 함수
 void start_timer(struct timeval *timer) {
