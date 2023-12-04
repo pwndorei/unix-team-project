@@ -58,7 +58,7 @@ create_shm()
 }
 
 void
-create_msgq()
+create_msg_queue()
 {		
 		int i;
 		gen_key();
