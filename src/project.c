@@ -10,8 +10,7 @@
 #include <sys/time.h>
 
 extern key_t key; //declared in common.c
-int cnt = 0; //for client-oriented, check chunk completion
-int order = 0;//for client-oriented, id of server to resume execution(read chunk)
+int order = 0;//id of server to resume execution(read chunk)
 int mode = -1;//Client-Oriented(MODE_CLOR) or Server-Oriented(MODE_SVOR)
 pid_t servers[NODENUM] = {0,};
 pid_t clients[NODENUM] = {0,};
@@ -41,6 +40,12 @@ main()
 //signal handlers
 
 void
+do_nothing(int sig)
+{
+	//SIGUSR1 Handler for SV-OR
+}
+
+void
 client_write_complete(int sig)
 {
 		//SIGUSR1 Handler
@@ -48,6 +53,10 @@ client_write_complete(int sig)
 #ifdef DEBUG
 		puts("parent: SIGUSR1 caught");
 #endif
+		if (mode == MODE_SVOR)
+		{
+				signal(SIGUSR1, do_nothing); // Ignore duplicate signals from clients!!
+		}
 
 		kill(servers[order], SIGUSR1);//resume server process
 		order = (order + 1) % NODENUM;
@@ -63,7 +72,8 @@ server_read_complete(int sig)
 		if (mode == MODE_CLOR)
 				kill(clients[0], SIGUSR2);
 		else if (mode == MODE_SVOR)
-		{
+		{		
+				signal(SIGUSR1, client_write_complete);  // restore SIGUSR1 Handler of parent
 				for (int i = 0; i < NODENUM; i++)
 						kill(clients[i], SIGCONT);
 		}
@@ -153,6 +163,12 @@ server_oriented_io()
 
 		act.sa_handler = shutdown;
 		sigaction(SIGINT, &act, NULL);
+
+		act.sa_handler = client_write_complete;
+		sigaction(SIGUSR1, &act, NULL);
+
+		act.sa_handler = server_read_complete;
+		sigaction(SIGUSR2, &act, NULL);
 
 		create_msgq();
 		gen_node(servers, NODENUM, do_server_task, MODE_SVOR);

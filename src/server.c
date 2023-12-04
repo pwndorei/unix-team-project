@@ -49,7 +49,7 @@ shutdown(int sig)
 		else if(mode == MODE_SVOR)
 		{
 				close(fd);
-				if (msgctl(msg_queue_id, IPC_RMID, NULL) == -1)
+				if (msgctl(msgid[id], IPC_RMID, NULL) == -1)
 				{
        					perror("msgctl");
         				exit(-1);
@@ -95,10 +95,13 @@ do_server_task(int mode)
 		}
 		else if(mode == MODE_SVOR)
 		{
-		    msgbuf msg;
+		    static msgbuf msg;
+			static sigset_t mask;
+			sigemptyset(&mask);
+			sigaddset(&mask, SIGUSR1);
 			while(1)
 			{
-				raise(SIGSTOP);  // wait until msg queue is full, signal by parent
+				sigsuspend(&mask);  // wait until msg queue is full, signal by parent
 				for (int i = 0; i < 8; i++)
 				{	
 					nbyte = msgrcv(msgid[id], &msg, sizeof(int), -7, 0);
