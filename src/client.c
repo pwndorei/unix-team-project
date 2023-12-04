@@ -53,7 +53,7 @@ shutdown(int sig)
 		}
 		else if(mode == MODE_SVOR)
 		{
-
+				// defined at SVOR EOF
 		}
 		exit(0);
 }
@@ -200,6 +200,7 @@ do_client_task(int mode)
 		{
 			while (1)  // send data to msg queue #1 ~ #4
 			{
+				struct msqid_ds buf;
 				msgbuf msg;
 
 				nbyte = read(fd, &data, sizeof(int) * 2);
@@ -223,7 +224,9 @@ do_client_task(int mode)
 				msgsnd(msgid[msgi++], &msg, sizeof(int), 0);
 				msgi %= NODENUM;
 
-				kill(parent, SIGUSR1);//send SIGUSR1 to parent, notify "data is written!"
+				msgctl(msgid[msgi], IPC_STAT, &buf);
+				if(buf.msg_qnum == 8)//Check if, Is the message queue full?
+					kill(parent, SIGUSR1);//send SIGUSR1 to parent, notify "All datas are written!"
 				raise(SIGSTOP);//stop until parent's SIGCONT
 	
 			}
