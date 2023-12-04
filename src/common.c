@@ -5,6 +5,7 @@
 #include <errno.h>
 #include "project.h"
 #include <sys/time.h>
+#include <sys/msg.h>
 
 key_t key = 0; // key, used when creating/getting shm, msg queue
 int shmid = 0; //shared memory id
