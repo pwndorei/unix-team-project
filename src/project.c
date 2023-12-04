@@ -170,7 +170,7 @@ server_oriented_io()
 		act.sa_handler = server_read_complete;
 		sigaction(SIGUSR2, &act, NULL);
 
-		create_msgq();
+		create_msg_queue();
 		gen_node(servers, NODENUM, do_server_task, MODE_SVOR);
 		gen_node(clients, NODENUM, do_client_task, MODE_SVOR);
   
