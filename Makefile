@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-g
+CFLAGS=-g -std=gnu99
 OBJS= common.o create.o server.o client.o
 TARGET=project #main binary
 LIB=libproject.a #static library
