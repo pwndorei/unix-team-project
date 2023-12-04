@@ -58,9 +58,10 @@ create_shm()
 
 void
 create_msgq()
-{	
+{		
+		int i;
 		gen_key();
-		for (int i = 0; i < NODENUM; i++)
+		for (i = 0; i < NODENUM; i++)
 		{
 			msgid[i] = msgget(key + i, IPC_CREAT | 0600);
 			if (msgid[i] == -1)
