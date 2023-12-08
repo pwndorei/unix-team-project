@@ -41,16 +41,21 @@ main()
 //signal handlers
 
 void
+do_nothing(int sig)
+{
+	// do nothing
+}
+
+void
 client_write_complete(int sig)
 {
 		//SIGUSR1 Handler
-
 #ifdef DEBUG
 		puts("parent: SIGUSR1 caught");
 #endif
 
 		kill(servers[order], SIGUSR1);//resume server process
-		printf("killed SIGUSR to server #%d\n", order);
+		// printf("killed SIGUSR to server #%d\n", order);
 		order = (order + 1) % NODENUM;
 		
 }
@@ -77,6 +82,8 @@ shutdown(int sig)
 {
 		int i = 0;
 		puts("shutdown");
+
+		signal(SIGINT, do_nothing);
 
 		for(i = 0; i < NODENUM; i++)
 		{
@@ -166,11 +173,8 @@ server_oriented_io()
 		sigaction(SIGUSR2, &act, NULL);
 
 		create_msg_queue();
-		gen_node(servers, NODENUM, do_server_task, MODE_SVOR);
 		gen_node(clients, NODENUM, do_client_task, MODE_SVOR);
-
-		for (i = 0; i < NODENUM; i++)
-				kill(clients[i], SIGUSR1);
+		gen_node(servers, NODENUM, do_server_task, MODE_SVOR);
 
 		while(1)
 		{

@@ -41,6 +41,17 @@ static int nbyte = 0;
  * parent: send SIGUSR1 to all client, resume execution
 */
 
+/*
+ * signal for sync (Server-Oriented)
+ * client: When a client gets SIGUSR1, it sends message to message queue #order. At first cycle, raise(SIGUSR1) itself to start the task.
+ * server: Waits until a message comes to server's own message queue (blocked by msgrcv()), then receives the message. every 8 rcvs, sends SIGUSR2 to parent.
+ * parent: When the parent gets SIGUSR2, sends SIGUSR1 to every clients to fill the message queue. 
+ * shutdown(c): When any of clients reaches EOF, closes own file descripter and sends SIGINT to parent, exit.
+ * shutdown(p): When the parent gets SIGINT, wait all clients to be exited, then sends SIGINT to every servers, and wait until they all exited.
+ * shutdown(p): + The parent will never react to any SIGINT, using func signal(SIGINT, do_nothing);
+ * shutdown(s): When a server gets SIGINT, closes its own file descripter and message queue, exit.
+*/
+
 static void
 shutdown(int sig)
 {
@@ -145,7 +156,6 @@ client_leader(int sig)
 void
 svor_client(int sig)
 {
-		puts("client caught SIGUSR1");
 		// SIGUSR1 handler for SVOR
 		struct msqid_ds buf;
 		msgbuf msg;
@@ -158,7 +168,6 @@ svor_client(int sig)
 		}
 		else if (!nbyte)//end-of-file
 		{
-				puts("client reached EOF");
 				close(fd);  // close client's own file
 				//break to signal SIGCHLD to parent
 				kill(parent, SIGINT);
@@ -229,7 +238,8 @@ do_client_task(int mode)
 		{	
 			act.sa_handler = svor_client;
 			sigaction(SIGUSR1, &act, NULL);
-			while (1)  // send data to msg queue #1 ~ #4
+			raise(SIGUSR1);
+			while (1)
 			{
 					pause();
 			}

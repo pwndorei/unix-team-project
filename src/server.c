@@ -22,7 +22,6 @@ static int fd = -1;
 static int* shm_addr = NULL;
 static int ser_buf[CHKSIZE] = {0, };
 static pid_t parent;
-static int sv_shut;
 
 static void
 read_chunk_shm(int sig)
@@ -48,7 +47,9 @@ shutdown(int sig)
 
 		else if(mode == MODE_SVOR)
 		{
-				sv_shut = 1;
+					close(fd);
+					msgctl(msgid[id], IPC_RMID, NULL);
+					printf("message queue #%d closed.\n", id);
 		}
 
 		exit(0);
@@ -64,7 +65,6 @@ do_server_task(int mode)
 		struct sigaction act = {0,};
 		fd = open(dat[id], O_WRONLY | O_CREAT | O_TRUNC, 0644);
 		act.sa_handler = shutdown;
-		sigaction(SIGINT, &act, NULL);
 		if(fd == -1)
 		{
 				perror(dat[id]);
@@ -73,6 +73,7 @@ do_server_task(int mode)
 
 		if(mode == MODE_CLOR)
 		{
+				sigaction(SIGINT, &act, NULL);
 				act.sa_handler = read_chunk_shm;
 				act.sa_flags = 0;
 				sigaction(SIGUSR1, &act, NULL);
@@ -91,6 +92,12 @@ do_server_task(int mode)
 		else if(mode == MODE_SVOR)
 		{
 		    static msgbuf msg;
+			sigset_t mask;
+			sigfillset(&mask);
+			sigdelset(&mask, SIGINT);
+			act.sa_mask = mask;
+			sigaction(SIGINT, &act, NULL);
+
 			while(1)
 			{
 				for (int i = 0; i < 8; i++)
@@ -99,21 +106,14 @@ do_server_task(int mode)
 					if (nbyte == -1)
 					{
 						perror("msgrcv");
+						printf("server #%d\n", id);
 						exit(-1);
 					}
 					ser_buf[msg.mtype - 1] = msg.mtext[0];
 				}
 				write(fd, ser_buf, CHKSIZE);  // write data to file
-				if (sv_shut)
-				{
-					close(fd);
-					msgctl(msgid[id], IPC_RMID, NULL);
-					break;
-				}
-				else
-				{
-					kill(parent, SIGUSR2);
-				}
+				kill(parent, SIGUSR2);
+
 			}
 		}
 		exit(0);//no return!, do_client_task is called inside of for-loop with fork() common.c:24
