@@ -21,7 +21,7 @@ static const char *dat[4] = {
 
 extern int id;// node's id, common.c
 extern int shmid;
-extern int msgid[4];
+extern int msgid[NODENUM];
 static int msgi = 0;
 extern int client_pipe[2];
 extern int mode;//from project.c, MODE_CLOR | MODE_SVOR
@@ -29,6 +29,8 @@ extern int mode;//from project.c, MODE_CLOR | MODE_SVOR
 static pid_t parent;
 static int* shm_addr = NULL;
 static int fd = -1;//fd for p*.dat
+static int data[2] = {0,};
+static int nbyte = 0;
 
 /*
  * signal for sync (Client-Oriented)
@@ -50,10 +52,6 @@ shutdown(int sig)
 				close(fd);//p*.dat
 				close(client_pipe[RDEND]);
 				close(client_pipe[WREND]);
-		}
-		else if(mode == MODE_SVOR)
-		{
-				// defined at SVOR EOF
 		}
 		exit(0);
 }
@@ -144,18 +142,49 @@ client_leader(int sig)
 
 }
 
+void
+svor_client(int sig)
+{
+		puts("client caught SIGUSR1");
+		// SIGUSR1 handler for SVOR
+		struct msqid_ds buf;
+		msgbuf msg;
+
+		nbyte = read(fd, &data, sizeof(int) * 2);
+		if (nbyte == -1)
+		{
+			perror("Read file");
+			exit(-1);
+		}
+		else if (!nbyte)//end-of-file
+		{
+				puts("client reached EOF");
+				close(fd);  // close client's own file
+				//break to signal SIGCHLD to parent
+				kill(parent, SIGINT);
+				exit(0);
+		}
+		// send two data
+		msg.mtext[0] = data[0];
+		msg.mtype = id + 1;
+		msgsnd(msgid[msgi], &msg, sizeof(int), 0);
+
+		msg.mtext[0] = data[1];
+		msg.mtype = id + NODENUM + 1;
+		msgsnd(msgid[msgi], &msg, sizeof(int), 0);
+		msgctl(msgid[msgi], IPC_STAT, &buf);
+
+		msgi++;
+		msgi %= NODENUM;
+}
 
 void
 do_client_task(int mode)
 {
 		struct sigaction act = {0,};
 		parent = getppid();
-		int data[2] = {0,};
-		int nbyte = 0;
-		int msgi = 0;
-		int i = 0;
+	
 		struct flock lock = {.l_whence=SEEK_SET, .l_len=0, .l_start=0};
-		long buf = 0;
 		//open p*.dat file
 		fd = open(dat[id], O_RDONLY);
 
@@ -197,38 +226,12 @@ do_client_task(int mode)
 		}
 
 		else if(mode == MODE_SVOR)
-		{
+		{	
+			act.sa_handler = svor_client;
+			sigaction(SIGUSR1, &act, NULL);
 			while (1)  // send data to msg queue #1 ~ #4
 			{
-				struct msqid_ds buf;
-				msgbuf msg;
-
-				nbyte = read(fd, &data, sizeof(int) * 2);
-				if (nbyte == -1)
-				{
-					perror("Read file");
-					exit(-1);
-				}
-				else if (!nbyte)//end-of-file
-				{
-					close(fd);  // close client's own file
-					//break to signal SIGCHLD to parent
-					break;
-				}
-				// send two data
-				msg.mtext[0] = data[0];
-				msg.mtype = id;
-				msgsnd(msgid[msgi], &msg, sizeof(int), 0);
-				msg.mtext[0] = data[1];
-				msg.mtype = id + NODENUM;
-				msgsnd(msgid[msgi++], &msg, sizeof(int), 0);
-				msgi %= NODENUM;
-
-				msgctl(msgid[msgi], IPC_STAT, &buf);
-				if(buf.msg_qnum == 8)//Check if, Is the message queue full?
-					kill(parent, SIGUSR1);//send SIGUSR1 to parent, notify "All datas are written!"
-				raise(SIGSTOP);//stop until parent's SIGCONT
-	
+					pause();
 			}
 			exit(0);//no return!, do_client_task is called inside of for-loop with fork() common.c:24
 			//parent's SIGCHLD handler will kill servers

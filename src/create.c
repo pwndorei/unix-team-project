@@ -27,7 +27,7 @@ create_source_data()
 				}
 		}
 
-		for(i = 0; i < 0x100000; i++, data++)
+		for(i = 0; i < 0x1000; i++, data++)
 		{
 				write(fd[i%4], &data, 4);
 		}
