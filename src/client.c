@@ -194,7 +194,6 @@ svor_client(int sig)
 		msg.mtext[0] = data[1];
 		msg.mtype = id + NODENUM + 1;
 		msgsnd(msgid[msgi], &msg, sizeof(int), 0);
-		msgctl(msgid[msgi], IPC_STAT, &buf);
 
 		msgi++;
 		msgi %= NODENUM;
