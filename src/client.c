@@ -205,6 +205,8 @@ do_client_task(int mode)
 {
 		struct sigaction act = {0,};
 		parent = getppid();
+		int i = 0;
+		char buf;
 	
 		struct flock lock = {.l_whence=SEEK_SET, .l_len=0, .l_start=0};
 		//open p*.dat file
@@ -237,9 +239,15 @@ do_client_task(int mode)
 						sigaction(SIGUSR2, &act, NULL);
 						act.sa_handler = SIG_IGN;
 						sigaction(SIGUSR1, &act, NULL);
+						for(i = 0; i < NODENUM-1; i++)
+						{
+								read(client_pipe[RDEND], &buf, 1);
+						}
+						raise(SIGUSR2);
 				}
 				else
 				{
+						write_lock(client_pipe[WREND], "\0", 1);
 				}
 
 				while(1)
