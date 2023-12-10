@@ -8,7 +8,7 @@
 #include "project.h"
 
 extern int shmid;
-extern int msgid[4];
+extern int msgid[NODENUM];
 extern int id;//in common.c, id for server
 extern int mode;//from project.c, indicate client/server-oriented mode
 
@@ -20,9 +20,8 @@ static const char *dat[4] = {
 };
 static int fd = -1;
 static int* shm_addr = NULL;
-static int ser_buf[8] = {0, };
+static int ser_buf[CHKSIZE] = {0, };
 static pid_t parent;
-
 
 static void
 read_chunk_shm(int sig)
@@ -48,12 +47,9 @@ shutdown(int sig)
 
 		else if(mode == MODE_SVOR)
 		{
-				close(fd);
-				if (msgctl(msgid[id], IPC_RMID, NULL) == -1)
-				{
-       					perror("msgctl");
-        				exit(-1);
-				}
+					close(fd);
+					msgctl(msgid[id], IPC_RMID, NULL);
+					printf("message queue #%d closed.\n", id);
 		}
 
 		exit(0);
@@ -69,7 +65,6 @@ do_server_task(int mode)
 		struct sigaction act = {0,};
 		fd = open(dat[id], O_WRONLY | O_CREAT | O_TRUNC, 0644);
 		act.sa_handler = shutdown;
-		sigaction(SIGINT, &act, NULL);
 		if(fd == -1)
 		{
 				perror(dat[id]);
@@ -78,6 +73,7 @@ do_server_task(int mode)
 
 		if(mode == MODE_CLOR)
 		{
+				sigaction(SIGINT, &act, NULL);
 				act.sa_handler = read_chunk_shm;
 				act.sa_flags = 0;
 				sigaction(SIGUSR1, &act, NULL);
@@ -96,24 +92,28 @@ do_server_task(int mode)
 		else if(mode == MODE_SVOR)
 		{
 		    static msgbuf msg;
-			static sigset_t mask;
-			sigemptyset(&mask);
-			sigaddset(&mask, SIGUSR1);
+			sigset_t mask;
+			sigfillset(&mask);
+			sigdelset(&mask, SIGINT);
+			act.sa_mask = mask;
+			sigaction(SIGINT, &act, NULL);
+
 			while(1)
 			{
-				sigsuspend(&mask);  // wait until msg queue is full, signal by parent
 				for (int i = 0; i < 8; i++)
-				{	
-					nbyte = msgrcv(msgid[id], &msg, sizeof(int), -7, 0);
+				{
+					nbyte = msgrcv(msgid[id], &msg, sizeof(int), -8, 0);
 					if (nbyte == -1)
 					{
 						perror("msgrcv");
+						printf("server #%d\n", id);
 						exit(-1);
 					}
-					ser_buf[msg.mtype] = msg.mtext[0];
+					ser_buf[msg.mtype - 1] = msg.mtext[0];
 				}
 				write(fd, ser_buf, CHKSIZE);  // write data to file
 				kill(parent, SIGUSR2);
+
 			}
 		}
 		exit(0);//no return!, do_client_task is called inside of for-loop with fork() common.c:24

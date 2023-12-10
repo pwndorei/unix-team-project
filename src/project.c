@@ -15,6 +15,7 @@ int mode = -1;//Client-Oriented(MODE_CLOR) or Server-Oriented(MODE_SVOR)
 pid_t servers[NODENUM] = {0,};
 pid_t clients[NODENUM] = {0,};
 extern int client_pipe[2];
+extern int msgid[NODENUM];
 
 int
 main()
@@ -27,7 +28,7 @@ main()
 		create_source_data();
 
 		start_timer(&io_start);
-		client_oriented_io();
+		//client_oriented_io();
 		stop_timer(&io_start, "IO");
 		
 		start_timer(&io_start);
@@ -42,24 +43,21 @@ main()
 void
 do_nothing(int sig)
 {
-	//SIGUSR1 Handler for SV-OR
+	// do nothing
 }
 
 void
 client_write_complete(int sig)
 {
 		//SIGUSR1 Handler
-
 #ifdef DEBUG
 		puts("parent: SIGUSR1 caught");
 #endif
-		if (mode == MODE_SVOR)
-		{
-				signal(SIGUSR1, do_nothing); // Ignore duplicate signals from clients!!
-		}
 
 		kill(servers[order], SIGUSR1);//resume server process
+		// printf("killed SIGUSR to server #%d\n", order);
 		order = (order + 1) % NODENUM;
+		
 }
 
 void
@@ -72,10 +70,9 @@ server_read_complete(int sig)
 		if (mode == MODE_CLOR)
 				kill(clients[0], SIGUSR2);
 		else if (mode == MODE_SVOR)
-		{		
-				signal(SIGUSR1, client_write_complete);  // restore SIGUSR1 Handler of parent
+		{	
 				for (int i = 0; i < NODENUM; i++)
-						kill(clients[i], SIGCONT);
+						kill(clients[i], SIGUSR1);
 		}
 
 }
@@ -84,6 +81,10 @@ static void
 shutdown(int sig)
 {
 		int i = 0;
+		puts("shutdown");
+
+		signal(SIGINT, do_nothing);
+
 		for(i = 0; i < NODENUM; i++)
 		{
 				if(servers[i])
@@ -96,7 +97,7 @@ shutdown(int sig)
 
 		for(i = 0; i < NODENUM; i++)
 		{
-				if(clients[i])
+				if(clients[i] && mode == MODE_SVOR)
 				{
 						kill(clients[i], SIGINT);
 						waitpid(clients[i], NULL, 0);
@@ -159,6 +160,7 @@ server_oriented_io()
 
 		mode = MODE_SVOR;
 
+		int i;
 		struct sigaction act = {0,};
 
 		act.sa_handler = shutdown;
@@ -171,8 +173,13 @@ server_oriented_io()
 		sigaction(SIGUSR2, &act, NULL);
 
 		create_msg_queue();
-		gen_node(servers, NODENUM, do_server_task, MODE_SVOR);
 		gen_node(clients, NODENUM, do_client_task, MODE_SVOR);
+		gen_node(servers, NODENUM, do_server_task, MODE_SVOR);
+
+		while(1)
+		{
+				pause();
+		}
   
 		return 0;
 }
