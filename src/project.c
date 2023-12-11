@@ -28,7 +28,7 @@ main()
 		create_source_data();
 
 		start_timer(&io_start);
-		//client_oriented_io();
+		client_oriented_io();
 		stop_timer(&io_start, "IO");
 		
 		start_timer(&io_start);
@@ -141,8 +141,8 @@ client_oriented_io()
 		pipe(client_pipe);
 		gen_node(clients, NODENUM, do_client_task, MODE_CLOR);
 
-		sleep(1);
-		kill(clients[0], SIGUSR2);
+		//sleep(1);
+		//kill(clients[0], SIGUSR2);
 
 
 		while(1)

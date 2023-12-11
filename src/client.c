@@ -52,6 +52,37 @@ static int nbyte = 0;
  * shutdown(s): When a server gets SIGINT, closes its own file descripter and message queue, exit.
 */
 
+
+static ssize_t
+write_lock(int fd, const void* buf, size_t count)
+{
+		struct flock lock = {.l_whence=SEEK_SET, .l_len=0, .l_start=0};
+		ssize_t nbytes = 0;
+
+		lock.l_type = F_WRLCK;
+		lock.l_len = 0;
+		lock.l_start = 0;
+		lock.l_whence = SEEK_SET;
+		fcntl(client_pipe[WREND], F_SETLKW, &lock);
+#ifdef DEBUG
+		puts("client worker: get lock");
+#endif
+
+		nbytes = write(fd, buf, count);
+
+		lock.l_type = F_UNLCK;
+		lock.l_len = 0;
+		lock.l_start = 0;
+		lock.l_whence = SEEK_SET;
+#ifdef DEBUG
+		puts("client worker: release lock");
+#endif
+		fcntl(client_pipe[WREND], F_SETLKW, &lock);
+
+		return nbytes;
+}
+
+
 static void
 shutdown(int sig)
 {
@@ -88,25 +119,7 @@ client_worker(int sig)
 		shm_addr[id] = data[0];//write data
 		shm_addr[id + NODENUM] = data[1];
 
-		lock.l_type = F_WRLCK;
-		lock.l_len = 0;
-		lock.l_start = 0;
-		lock.l_whence = SEEK_SET;
-		fcntl(client_pipe[WREND], F_SETLKW, &lock);
-#ifdef DEBUG
-		puts("client worker: get lock");
-#endif
-
-		write(client_pipe[WREND], "\0", 1);
-
-		lock.l_type = F_UNLCK;
-		lock.l_len = 0;
-		lock.l_start = 0;
-		lock.l_whence = SEEK_SET;
-#ifdef DEBUG
-		puts("client worker: release lock");
-#endif
-		fcntl(client_pipe[WREND], F_SETLKW, &lock);
+		write_lock(client_pipe[WREND], "\0", 1);
 
 }
 
@@ -181,7 +194,6 @@ svor_client(int sig)
 		msg.mtext[0] = data[1];
 		msg.mtype = id + NODENUM + 1;
 		msgsnd(msgid[msgi], &msg, sizeof(int), 0);
-		msgctl(msgid[msgi], IPC_STAT, &buf);
 
 		msgi++;
 		msgi %= NODENUM;
@@ -192,6 +204,8 @@ do_client_task(int mode)
 {
 		struct sigaction act = {0,};
 		parent = getppid();
+		int i = 0;
+		char buf;
 	
 		struct flock lock = {.l_whence=SEEK_SET, .l_len=0, .l_start=0};
 		//open p*.dat file
@@ -224,6 +238,15 @@ do_client_task(int mode)
 						sigaction(SIGUSR2, &act, NULL);
 						act.sa_handler = SIG_IGN;
 						sigaction(SIGUSR1, &act, NULL);
+						for(i = 0; i < NODENUM-1; i++)
+						{
+								read(client_pipe[RDEND], &buf, 1);
+						}
+						raise(SIGUSR2);
+				}
+				else
+				{
+						write_lock(client_pipe[WREND], "\0", 1);
 				}
 
 				while(1)
