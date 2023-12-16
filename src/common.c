@@ -14,7 +14,6 @@ const int proj_id = 0x41;//temp id
 int id;//id for node
 int client_pipe[2];
 
-
 void
 gen_node(pid_t pids[], int n, void(*task)(int), int mode)
 {

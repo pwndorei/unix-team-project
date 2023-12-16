@@ -32,6 +32,8 @@ static int fd = -1;//fd for p*.dat
 static int data[2] = {0,};
 static int nbyte = 0;
 
+struct timeval io_start;
+
 /*
  * signal for sync (Client-Oriented)
  * client: SIGUSR1 to parent after writing 2 int at shm for 1 chunk
@@ -95,6 +97,9 @@ shutdown(int sig)
 				close(client_pipe[RDEND]);
 				close(client_pipe[WREND]);
 		}
+#ifdef DTIMES
+	stop_timer(&io_start, "IO");
+#endif
 		exit(0);
 }
 

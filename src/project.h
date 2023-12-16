@@ -56,3 +56,6 @@ void server_read_complete(int);//SIGUSR2 handler
 //time measurement function
 void start_timer(struct timeval *timer);
 void stop_timer(struct timeval *start_time, const char *label);
+
+
+extern struct timeval io_start;

@@ -17,6 +17,8 @@ pid_t clients[NODENUM] = {0,};
 extern int client_pipe[2];
 extern int msgid[NODENUM];
 
+struct timeval io_start;
+
 int
 main()
 {
@@ -24,16 +26,17 @@ main()
 		printf("parent pid: %d\n",getpid());
 #endif
 
-		struct timeval io_start;
 		create_source_data();
 
-		start_timer(&io_start);
+#ifdef DTIMES
+	start_timer(&io_start);
+#endif
 		client_oriented_io();
-		stop_timer(&io_start, "IO");
 		
-		start_timer(&io_start);
+#ifdef DTIMES
+	start_timer(&io_start);
+#endif
 		server_oriented_io();
-		stop_timer(&io_start, "IO");
 		
 }
 
