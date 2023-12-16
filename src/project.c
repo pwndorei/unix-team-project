@@ -28,12 +28,12 @@ main()
 
 		create_source_data();
 
-#ifdef DTIMES
+#ifdef TIMES
 	start_timer(&io_start);
 #endif
 		client_oriented_io();
 		
-#ifdef DTIMES
+#ifdef TIMES
 	start_timer(&io_start);
 #endif
 		server_oriented_io();

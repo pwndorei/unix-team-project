@@ -97,7 +97,7 @@ shutdown(int sig)
 				close(client_pipe[RDEND]);
 				close(client_pipe[WREND]);
 		}
-#ifdef DTIMES
+#ifdef TIMES
 	stop_timer(&io_start, "IO");
 #endif
 		exit(0);

@@ -54,7 +54,7 @@ shutdown(int sig)
 					printf("message queue #%d closed.\n", id);
 		}
 
-#ifdef DTIMES
+#ifdef TIMES
 	stop_timer(&io_start, "IO");
 #endif
 		exit(0);
