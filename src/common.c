@@ -75,25 +75,14 @@ create_msg_queue()
 //time measurement function
 // 시간 측정을 시작하는 함수
 void start_timer(struct timeval *timer) {
-#ifdef TIMES
     gettimeofday(timer, NULL);
-#endif
 }
 
 // 시간 측정을 종료하고 결과를 출력하는 함수
 void stop_timer(struct timeval *start_time, const char *label) {
-#ifdef TIMES
     struct timeval end_time;
     gettimeofday(&end_time, NULL);
 
-    int time_result = end_time.tv_usec - start_time->tv_usec;
-    printf("%s TIMES == %ld %ld %ld\n", label, end_time.tv_usec, start_time->tv_usec, time_result);
-#endif
+    long time_result = end_time.tv_sec - start_time->tv_sec;
+    printf("%s TIMES = %ld - %ld = %ld\n", label, end_time.tv_sec, start_time->tv_sec, time_result);
 }
-/*
-main using example
-struct timeval io_start;
-start_timer(&io_start);
-stop_timer(&io_start, "IO");
-
-*/

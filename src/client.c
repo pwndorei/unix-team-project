@@ -33,6 +33,9 @@ static int data[2] = {0,};
 static int nbyte = 0;
 
 struct timeval io_start;
+long rwtime;
+struct timeval rwstart;
+struct timeval rwend;
 
 /*
  * signal for sync (Client-Oriented)
@@ -70,7 +73,14 @@ write_lock(int fd, const void* buf, size_t count)
 		puts("client worker: get lock");
 #endif
 
-		nbytes = write(fd, buf, count);
+#ifdef TIMES
+	gettimeofday(&rwstart, NULL);
+#endif
+		nbytes = write(fd, buf, count);//write
+#ifdef TIMES
+	gettimeofday(&rwend, NULL);
+	rwtime += rwend.tv_sec - rwstart.tv_sec;
+#endif
 
 		lock.l_type = F_UNLCK;
 		lock.l_len = 0;
@@ -96,10 +106,11 @@ shutdown(int sig)
 				close(fd);//p*.dat
 				close(client_pipe[RDEND]);
 				close(client_pipe[WREND]);
-		}
 #ifdef TIMES
-	stop_timer(&io_start, "IO");
-#endif
+	stop_timer(&io_start, "CLOR I/O");
+	printf("rwtime = %ld\n", rwtime);
+#endif		
+		}
 		exit(0);
 }
 
@@ -121,9 +132,15 @@ client_worker(int sig)
 				puts("client: EOF");
 				exit(0);
 		}
+#ifdef TIMES
+	gettimeofday(&rwstart, NULL);
+#endif
 		shm_addr[id] = data[0];//write data
 		shm_addr[id + NODENUM] = data[1];
-
+#ifdef TIMES
+	gettimeofday(&rwend, NULL);
+	rwtime += rwend.tv_sec - rwstart.tv_sec;
+#endif
 		write_lock(client_pipe[WREND], "\0", 1);
 
 }
@@ -139,8 +156,16 @@ client_leader(int sig)
 		int i = 0;
 		char buf;
 		nbytes = read(fd, data, 8);
+#ifdef TIMES
+	gettimeofday(&rwstart, NULL);
+#endif
 		shm_addr[id] = data[0];//write data
 		shm_addr[id + NODENUM] = data[1];
+#ifdef TIMES
+	gettimeofday(&rwend, NULL);
+	rwtime += rwend.tv_sec - rwstart.tv_sec;
+#endif
+
 		kill(-getpid(), SIGUSR1);
 		
 		if(nbytes == 0)
@@ -153,7 +178,14 @@ client_leader(int sig)
 		{
 				do
 				{
+#ifdef TIMES
+	gettimeofday(&rwstart, NULL);
+#endif
 						nbytes = read(client_pipe[RDEND], &buf, 1);
+#ifdef TIMES
+	gettimeofday(&rwend, NULL);
+	rwtime += rwend.tv_sec - rwstart.tv_sec;
+#endif
 #ifdef DEBUG
 						if(nbytes == -1)
 						{
@@ -178,7 +210,15 @@ svor_client(int sig)
 		struct msqid_ds buf;
 		msgbuf msg;
 
-		nbyte = read(fd, &data, sizeof(int) * 2);
+#ifdef TIMES
+	gettimeofday(&rwstart, NULL);
+#endif
+		nbyte = read(fd, &data, sizeof(int) * 2);//read
+#ifdef TIMES
+	gettimeofday(&rwend, NULL);
+	rwtime += rwend.tv_sec - rwstart.tv_sec;
+#endif
+
 		if (nbyte == -1)
 		{
 			perror("Read file");
@@ -245,7 +285,14 @@ do_client_task(int mode)
 						sigaction(SIGUSR1, &act, NULL);
 						for(i = 0; i < NODENUM-1; i++)
 						{
-								read(client_pipe[RDEND], &buf, 1);
+#ifdef TIMES
+	gettimeofday(&rwstart, NULL);
+#endif
+								read(client_pipe[RDEND], &buf, 1);//read
+#ifdef TIMES
+	gettimeofday(&rwend, NULL);
+	rwtime += rwend.tv_sec - rwstart.tv_sec;
+#endif
 						}
 						raise(SIGUSR2);
 				}

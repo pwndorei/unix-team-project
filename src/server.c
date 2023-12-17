@@ -24,12 +24,22 @@ static int ser_buf[CHKSIZE] = {0, };
 static pid_t parent;
 
 struct timeval io_start;
+long rwtime;
+struct timeval rwstart;
+struct timeval rwend;
 
 static void
 read_chunk_shm(int sig)
 {
+#ifdef TIMES
+	gettimeofday(&rwstart, NULL);
+#endif
 		//SIGUSR1 handler
 		write(fd, shm_addr, CHKSIZE);// write data
+#ifdef TIMES
+	gettimeofday(&rwend, NULL);
+	rwtime += rwend.tv_sec - rwstart.tv_sec;
+#endif
 #ifdef DEBUG
 		puts("server: read complete");
 #endif
@@ -45,6 +55,10 @@ shutdown(int sig)
 		{
 				close(fd);
 				shmdt(shm_addr);
+#ifdef TIMES
+	stop_timer(&io_start, "CLOR I/O");
+	printf("rwtime = %ld\n", rwtime);
+#endif	
 		}
 
 		else if(mode == MODE_SVOR)
@@ -52,11 +66,11 @@ shutdown(int sig)
 					close(fd);
 					msgctl(msgid[id], IPC_RMID, NULL);
 					printf("message queue #%d closed.\n", id);
-		}
-
 #ifdef TIMES
-	stop_timer(&io_start, "IO");
+	stop_timer(&io_start, "SVOR I/O");
+	printf("rwtime = %ld\n", rwtime);
 #endif
+		}
 		exit(0);
 }
 
@@ -116,7 +130,14 @@ do_server_task(int mode)
 					}
 					ser_buf[msg.mtype - 1] = msg.mtext[0];
 				}
+#ifdef TIMES
+	gettimeofday(&rwstart, NULL);
+#endif
 				write(fd, ser_buf, CHKSIZE);  // write data to file
+#ifdef TIMES
+	gettimeofday(&rwend, NULL);
+	rwtime += rwend.tv_sec - rwstart.tv_sec;
+#endif
 				kill(parent, SIGUSR2);
 
 			}
