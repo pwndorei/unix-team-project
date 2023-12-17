@@ -74,14 +74,9 @@ write_lock(int fd, const void* buf, size_t count)
 		puts("client worker: get lock");
 #endif
 
-#ifdef TIMES
-	gettimeofday(&rwstart, NULL);
-#endif
+TIMER_START(rwstart);
 		nbytes = write(fd, buf, count);//write
-#ifdef TIMES
-	gettimeofday(&rwend, NULL);
-	rwtime += rwend.tv_sec - rwstart.tv_sec;
-#endif
+TIMER_END(rwstart, rwend, rwtime);
 
 		lock.l_type = F_UNLCK;
 		lock.l_len = 0;
@@ -106,7 +101,10 @@ shutdown(int sig)
 				shmdt(shm_addr);
 				close(fd);//p*.dat
 				close(client_pipe[RDEND]);
-				close(client_pipe[WREND]);		
+				close(client_pipe[WREND]);
+#ifdef TIMES
+	printf("rwtime = %ld\n", rwtime);
+#endif		
 		}
 		exit(0);
 }
@@ -129,15 +127,10 @@ client_worker(int sig)
 				puts("client: EOF");
 				exit(0);
 		}
-#ifdef TIMES
-	gettimeofday(&rwstart, NULL);
-#endif
+TIMER_START(rwstart);
 		shm_addr[id] = data[0];//write data
 		shm_addr[id + NODENUM] = data[1];
-#ifdef TIMES
-	gettimeofday(&rwend, NULL);
-	rwtime += rwend.tv_sec - rwstart.tv_sec;
-#endif
+TIMER_END(rwstart, rwend, rwtime);
 		write_lock(client_pipe[WREND], "\0", 1);//notify write completion via clients pipe
 
 }
@@ -153,16 +146,10 @@ client_leader(int sig)
 		int i = 0;
 		char buf;
 		nbytes = read(fd, data, 8);//read file data
-#ifdef TIMES
-	gettimeofday(&rwstart, NULL);
-#endif
+TIMER_START(rwstart);
 		shm_addr[id] = data[0];//write data
 		shm_addr[id + NODENUM] = data[1];
-#ifdef TIMES
-	gettimeofday(&rwend, NULL);
-	rwtime += rwend.tv_sec - rwstart.tv_sec;
-	commtime += rwend.tv_sec - rwstart.tv_sec;
-#endif
+TIMER_END(rwstart, rwend, rwtime);
 
 		kill(-getpid(), SIGUSR1);//SIGUSR1 to all other clients -> invoke sighandler(client_worker)
 		
@@ -176,14 +163,9 @@ client_leader(int sig)
 		{
 				do
 				{
-#ifdef TIMES
-	gettimeofday(&rwstart, NULL);
-#endif
+TIMER_START(rwstart);
 						nbytes = read(client_pipe[RDEND], &buf, 1);//read data from clients pipe
-#ifdef TIMES
-	gettimeofday(&rwend, NULL);
-	rwtime += rwend.tv_sec - rwstart.tv_sec;
-#endif
+TIMER_END(rwstart, rwend, rwtime);
 #ifdef DEBUG
 						if(nbytes == -1)
 						{
@@ -210,14 +192,9 @@ svor_client(int sig)
 		struct msqid_ds buf;
 		msgbuf msg;
 
-#ifdef TIMES
-	gettimeofday(&rwstart, NULL);
-#endif
+TIMER_START(rwstart);
 		nbyte = read(fd, &data, sizeof(int) * 2);//read data from own file
-#ifdef TIMES
-	gettimeofday(&rwend, NULL);
-	rwtime += rwend.tv_sec - rwstart.tv_sec;
-#endif
+TIMER_END(rwstart, rwend, rwtime);
 
 		if (nbyte == -1)
 		{
@@ -236,8 +213,8 @@ svor_client(int sig)
 		msgsnd(msgid[msgi], &msg, sizeof(int), 0); // send msg to msg queue #msgi
 		msg.mtext[0] = data[1];
 		msg.mtype = id + NODENUM + 1;
-
 		msgsnd(msgid[msgi], &msg, sizeof(int), 0);
+
 		msgi++;
 		msgi %= NODENUM;  // go to next message queue.
 }
@@ -283,14 +260,9 @@ do_client_task(int mode)  // Client's task. Automatically started when a client 
 						sigaction(SIGUSR1, &act, NULL);
 						for(i = 0; i < NODENUM-1; i++)
 						{
-#ifdef TIMES
-	gettimeofday(&rwstart, NULL);
-#endif
+TIMER_START(rwstart);
 								read(client_pipe[RDEND], &buf, 1);//read from clients pipe -> sync with client workers
-#ifdef TIMES
-	gettimeofday(&rwend, NULL);
-	rwtime += rwend.tv_sec - rwstart.tv_sec;
-#endif
+TIMER_END(rwstart, rwend, rwtime);
 						}
 						raise(SIGUSR2);//start working
 				}
