@@ -84,7 +84,7 @@ server_read_complete(int sig)
 #ifdef TIMES
 	gettimeofday(&commend, NULL);
 	commtime = commend.tv_sec - commstart.tv_sec;
-	printf("commtime = %ld\n", commetime);
+	printf("commtime = %ld\n", commtime);
 #endif
 }
 
