@@ -18,7 +18,7 @@
 
 #ifdef TIMES
 #define TIMER_START(start)  \
-		gettimeofday(&timer,NULL);
+		gettimeofday(&start,NULL);
 #define TIMER_END(start, end, total) \
 		gettimeofday(&end, NULL);\
 		total += end.tv_sec - start.tv_sec;
