@@ -16,6 +16,18 @@
 #define MODE_CLOR 0
 #define MODE_SVOR 1
 
+#ifdef TIMES
+#define TIMER_START(start)  \
+		gettimeofday(&timer,NULL);
+#define TIMER_END(start, end, total) \
+		gettimeofday(&end, NULL);\
+		total += end.tv_sec - start.tv_sec;
+		
+#else
+#define TIME_START(timer) /*do nothing*/
+#define TIME_END(start, end, total) /*do nothing*/
+#endif
+
 
 typedef struct _msg
 {
