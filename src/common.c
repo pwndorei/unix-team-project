@@ -86,9 +86,3 @@ void stop_timer(struct timeval *start_time, const char *label) {
     long time_result = end_time.tv_sec - start_time->tv_sec;
     printf("%s TIMES = %ld - %ld = %ld\n", label, end_time.tv_sec, start_time->tv_sec, time_result);
 }
-
-void check_rwtime(struct timeval *rw_time){
-	struct timeval intervals;
-	struct timeval intervale;
-	gettimeofday
-}extern 
