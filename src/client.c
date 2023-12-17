@@ -34,8 +34,11 @@ static int nbyte = 0;
 
 struct timeval io_start;
 long rwtime;
+long commtime;
 struct timeval rwstart;
 struct timeval rwend;
+struct timeval commstart;
+struct timeval commend;
 
 /*
  * signal for sync (Client-Oriented)
@@ -105,11 +108,7 @@ shutdown(int sig)
 				shmdt(shm_addr);
 				close(fd);//p*.dat
 				close(client_pipe[RDEND]);
-				close(client_pipe[WREND]);
-#ifdef TIMES
-	stop_timer(&io_start, "CLOR I/O");
-	printf("rwtime = %ld\n", rwtime);
-#endif		
+				close(client_pipe[WREND]);		
 		}
 		exit(0);
 }
@@ -164,6 +163,7 @@ client_leader(int sig)
 #ifdef TIMES
 	gettimeofday(&rwend, NULL);
 	rwtime += rwend.tv_sec - rwstart.tv_sec;
+	commtime += rwend.tv_sec - rwstart.tv_sec;
 #endif
 
 		kill(-getpid(), SIGUSR1);//SIGUSR1 to all other clients -> invoke sighandler(client_worker)
@@ -235,12 +235,24 @@ svor_client(int sig)
 		// send two data
 		msg.mtext[0] = data[0];
 		msg.mtype = id + 1;
+#ifdef TIMES
+	gettimeofday(&commstart, NULL);
+#endif
 		msgsnd(msgid[msgi], &msg, sizeof(int), 0); // send msg to msg queue #msgi
-
+#ifdef TIMES
+	gettimeofday(&commend, NULL);
+	commtime += commend.tv_sec - commstart.tv_sec;
+#endif
 		msg.mtext[0] = data[1];
 		msg.mtype = id + NODENUM + 1;
+#ifdef TIMES
+	gettimeofday(&commstart, NULL);
+#endif
 		msgsnd(msgid[msgi], &msg, sizeof(int), 0);
-
+#ifdef TIMES
+	gettimeofday(&commend, NULL);
+	commtime += commend.tv_sec - commstart.tv_sec;
+#endif
 		msgi++;
 		msgi %= NODENUM;  // go to next message queue.
 }

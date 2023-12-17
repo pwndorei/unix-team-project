@@ -27,6 +27,8 @@ struct timeval io_start;
 long rwtime;
 struct timeval rwstart;
 struct timeval rwend;
+struct timeval commstart;
+struct timeval commend;
 
 static void
 read_chunk_shm(int sig)
@@ -39,6 +41,7 @@ read_chunk_shm(int sig)
 #ifdef TIMES
 	gettimeofday(&rwend, NULL);
 	rwtime += rwend.tv_sec - rwstart.tv_sec;
+	commtime += rwend.tv_sec - rwstart.tv_sec;
 #endif
 #ifdef DEBUG
 		puts("server: read complete");
@@ -55,10 +58,6 @@ shutdown(int sig)
 		{
 				close(fd);
 				shmdt(shm_addr);
-#ifdef TIMES
-	stop_timer(&io_start, "CLOR I/O");
-	printf("rwtime = %ld\n", rwtime);
-#endif	
 		}
 
 		else if(mode == MODE_SVOR)
@@ -121,7 +120,14 @@ do_server_task(int mode)
 			{
 				for (int i = 0; i < 8; i++)  // automatically starts
 				{
+#ifdef TIMES
+	gettimeofday(&commstart, NULL);
+#endif
 					nbyte = msgrcv(msgid[id], &msg, sizeof(int), -8, 0);  // receive messages from own msg queue.
+#ifdef TIMES
+	gettimeofday(&commend, NULL);
+	commtime += commend.tv_sec - commstart.tv_sec;
+#endif
 					if (nbyte == -1)
 					{
 						perror("msgrcv");

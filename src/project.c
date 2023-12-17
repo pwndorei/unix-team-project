@@ -18,6 +18,8 @@ extern int client_pipe[2];
 extern int msgid[NODENUM];
 
 struct timeval io_start;
+long rwtime;
+long commtime;
 
 int
 main()
@@ -106,6 +108,15 @@ shutdown(int sig)
 				}
 		}
 		puts("bye");
+
+#ifdef TIMES
+if (mode == MODE_CLOR)
+	stop_timer(&io_start, "CLOR I/O");
+else if (mode == MODE_SVOR)
+	stop_timer(&io_start, "SVOR I/O");
+printf("rwtime = %ld\n", rwtime);
+printf("commtime = %ld\n", commtime);
+#endif
 		exit(0);
 }
 
