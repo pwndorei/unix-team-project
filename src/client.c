@@ -34,11 +34,9 @@ static int nbyte = 0;
 
 struct timeval io_start;
 long rwtime;
-long commtime;
 struct timeval rwstart;
 struct timeval rwend;
-struct timeval commstart;
-struct timeval commend;
+
 
 /*
  * signal for sync (Client-Oriented)
@@ -235,24 +233,11 @@ svor_client(int sig)
 		// send two data
 		msg.mtext[0] = data[0];
 		msg.mtype = id + 1;
-#ifdef TIMES
-	gettimeofday(&commstart, NULL);
-#endif
 		msgsnd(msgid[msgi], &msg, sizeof(int), 0); // send msg to msg queue #msgi
-#ifdef TIMES
-	gettimeofday(&commend, NULL);
-	commtime += commend.tv_sec - commstart.tv_sec;
-#endif
 		msg.mtext[0] = data[1];
 		msg.mtype = id + NODENUM + 1;
-#ifdef TIMES
-	gettimeofday(&commstart, NULL);
-#endif
+
 		msgsnd(msgid[msgi], &msg, sizeof(int), 0);
-#ifdef TIMES
-	gettimeofday(&commend, NULL);
-	commtime += commend.tv_sec - commstart.tv_sec;
-#endif
 		msgi++;
 		msgi %= NODENUM;  // go to next message queue.
 }

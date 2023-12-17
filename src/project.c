@@ -20,6 +20,8 @@ extern int msgid[NODENUM];
 struct timeval io_start;
 long rwtime;
 long commtime;
+struct timeval commstart;
+struct timeval commend;
 
 int
 main()
@@ -54,6 +56,9 @@ do_nothing(int sig)
 void
 client_write_complete(int sig)
 {		//SIGUSR1 handler for parent, client-oriented io
+#ifdef TIMES
+	gettimeofday(&commstart, NULL);
+#endif
 #ifdef DEBUG
 		puts("parent: SIGUSR1 caught");
 #endif
@@ -76,7 +81,11 @@ server_read_complete(int sig)
 				for (int i = 0; i < NODENUM; i++)
 						kill(clients[i], SIGUSR1);
 		}
-
+#ifdef TIMES
+	gettimeofday(&commend, NULL);
+	commtime = commend.tv_sec - commstart.tv_sec;
+	printf("commtime = %ld\n", commetime);
+#endif
 }
 
 static void
@@ -114,8 +123,6 @@ if (mode == MODE_CLOR)
 	stop_timer(&io_start, "CLOR I/O");
 else if (mode == MODE_SVOR)
 	stop_timer(&io_start, "SVOR I/O");
-printf("rwtime = %ld\n", rwtime);
-printf("commtime = %ld\n", commtime);
 #endif
 		exit(0);
 }
