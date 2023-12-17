@@ -23,6 +23,8 @@ static int* shm_addr = NULL;
 static int ser_buf[CHKSIZE] = {0, };
 static pid_t parent;
 
+struct timeval io_start;
+
 static void
 read_chunk_shm(int sig)
 {
@@ -52,6 +54,9 @@ shutdown(int sig)
 					printf("message queue #%d closed.\n", id);
 		}
 
+#ifdef TIMES
+	stop_timer(&io_start, "IO");
+#endif
 		exit(0);
 }
 
