@@ -207,13 +207,14 @@ void
 svor_client(int sig)
 {
 		// SIGUSR1 handler for SVOR
+		// When a client receives SIGUSR1, it does its read-and-send task.
 		struct msqid_ds buf;
 		msgbuf msg;
 
 #ifdef TIMES
 	gettimeofday(&rwstart, NULL);
 #endif
-		nbyte = read(fd, &data, sizeof(int) * 2);//read
+		nbyte = read(fd, &data, sizeof(int) * 2);//read data from own file
 #ifdef TIMES
 	gettimeofday(&rwend, NULL);
 	rwtime += rwend.tv_sec - rwstart.tv_sec;
@@ -227,25 +228,24 @@ svor_client(int sig)
 		else if (!nbyte)//end-of-file
 		{
 				close(fd);  // close client's own file
-				//break to signal SIGCHLD to parent
-				kill(parent, SIGINT);
+				kill(parent, SIGINT); // kill SIGINT to tell the parent that client is going to exit.
 				exit(0);
 		}
 		// send two data
 		msg.mtext[0] = data[0];
 		msg.mtype = id + 1;
-		msgsnd(msgid[msgi], &msg, sizeof(int), 0);
+		msgsnd(msgid[msgi], &msg, sizeof(int), 0); // send msg to msg queue #msgi
 
 		msg.mtext[0] = data[1];
 		msg.mtype = id + NODENUM + 1;
 		msgsnd(msgid[msgi], &msg, sizeof(int), 0);
 
 		msgi++;
-		msgi %= NODENUM;
+		msgi %= NODENUM;  // go to next message queue.
 }
 
 void
-do_client_task(int mode)
+do_client_task(int mode)  // Client's task. Automatically started when a client process is generated.
 {
 		struct sigaction act = {0,};
 		parent = getppid();
@@ -312,13 +312,14 @@ do_client_task(int mode)
 		else if(mode == MODE_SVOR)
 		{	
 			act.sa_handler = svor_client;
-			sigaction(SIGUSR1, &act, NULL);
-			raise(SIGUSR1);
+			sigaction(SIGUSR1, &act, NULL);  // allocate SIGUSR1 handler.
+			raise(SIGUSR1);  // raise SIGUSR1 itself, so that the client can start the task stably.
 			while (1)
 			{
-					pause();
+					pause(); 
+					// Wait for SIGUSR1 or SIGINT from parent. No break, SIGINT handler will kill the client.
 			}
 			exit(0);//no return!, do_client_task is called inside of for-loop with fork() common.c:24
-			//parent's SIGCHLD handler will kill servers
+			//parent's SIGINT handler will kill servers
 		}
 }
