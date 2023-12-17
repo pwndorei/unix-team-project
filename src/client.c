@@ -32,8 +32,7 @@ static int fd = -1;//fd for p*.dat
 static int data[2] = {0,};
 static int nbyte = 0;
 
-struct timeval io_start;
-long rwtime;
+long rwtime=0;
 struct timeval rwstart;
 struct timeval rwend;
 
