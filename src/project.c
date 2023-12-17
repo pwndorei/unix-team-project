@@ -51,27 +51,24 @@ do_nothing(int sig)
 
 void
 client_write_complete(int sig)
-{
-		//SIGUSR1 Handler
+{		//SIGUSR1 handler for parent, client-oriented io
 #ifdef DEBUG
 		puts("parent: SIGUSR1 caught");
 #endif
 
 		kill(servers[order], SIGUSR1);//resume server process
-		// printf("killed SIGUSR to server #%d\n", order);
 		order = (order + 1) % NODENUM;
 		
 }
 
 void
 server_read_complete(int sig)
-{
-		//SIGUSR2 Handler
+{		//SIGUSR2 handler for parent, client/server-oriented io
 #ifdef DEBUG
 		puts("parent: server complete reading, wake all clients");
 #endif
 		if (mode == MODE_CLOR)
-				kill(clients[0], SIGUSR2);
+				kill(clients[0], SIGUSR2);//signal to client leader -> read chunk
 		else if (mode == MODE_SVOR)
 		{	
 				for (int i = 0; i < NODENUM; i++)
@@ -144,9 +141,6 @@ client_oriented_io()
 		gen_node(servers, NODENUM, do_server_task, MODE_CLOR);
 		pipe(client_pipe);
 		gen_node(clients, NODENUM, do_client_task, MODE_CLOR);
-
-		//sleep(1);
-		//kill(clients[0], SIGUSR2);
 
 
 		while(1)

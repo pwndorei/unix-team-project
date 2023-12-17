@@ -60,7 +60,7 @@ struct timeval rwend;
 
 static ssize_t
 write_lock(int fd, const void* buf, size_t count)
-{
+{		//write with lock
 		struct flock lock = {.l_whence=SEEK_SET, .l_len=0, .l_start=0};
 		ssize_t nbytes = 0;
 
@@ -126,7 +126,7 @@ client_worker(int sig)
 		int nbytes = 0;
 		int data[2] = {0,};
 
-		nbytes = read(fd, data, 8);
+		nbytes = read(fd, data, 8);//read file data
 		if(nbytes == 0)
 		{
 				puts("client: EOF");
@@ -141,7 +141,7 @@ client_worker(int sig)
 	gettimeofday(&rwend, NULL);
 	rwtime += rwend.tv_sec - rwstart.tv_sec;
 #endif
-		write_lock(client_pipe[WREND], "\0", 1);
+		write_lock(client_pipe[WREND], "\0", 1);//notify write completion via clients pipe
 
 }
 
@@ -155,7 +155,7 @@ client_leader(int sig)
 		int data[2] = {0,};
 		int i = 0;
 		char buf;
-		nbytes = read(fd, data, 8);
+		nbytes = read(fd, data, 8);//read file data
 #ifdef TIMES
 	gettimeofday(&rwstart, NULL);
 #endif
@@ -166,7 +166,7 @@ client_leader(int sig)
 	rwtime += rwend.tv_sec - rwstart.tv_sec;
 #endif
 
-		kill(-getpid(), SIGUSR1);
+		kill(-getpid(), SIGUSR1);//SIGUSR1 to all other clients -> invoke sighandler(client_worker)
 		
 		if(nbytes == 0)
 		{
@@ -181,7 +181,7 @@ client_leader(int sig)
 #ifdef TIMES
 	gettimeofday(&rwstart, NULL);
 #endif
-						nbytes = read(client_pipe[RDEND], &buf, 1);
+						nbytes = read(client_pipe[RDEND], &buf, 1);//read data from clients pipe
 #ifdef TIMES
 	gettimeofday(&rwend, NULL);
 	rwtime += rwend.tv_sec - rwstart.tv_sec;
@@ -199,6 +199,7 @@ client_leader(int sig)
 		puts("client: chunk write complete");
 #endif
 
+		//notify chunk write completion to parent via signal
 		kill(parent, SIGUSR1);
 
 }
@@ -269,9 +270,9 @@ do_client_task(int mode)  // Client's task. Automatically started when a client 
 		{
 				act.sa_handler = client_worker;
 				act.sa_flags = SA_NODEFER;
-				sigaction(SIGUSR1, &act, NULL);
+				sigaction(SIGUSR1, &act, NULL);//signal handler for client worker
 
-				shm_addr = shmat(shmid, NULL, 0);
+				shm_addr = shmat(shmid, NULL, 0);//allocate shared memory
 				if(shm_addr == (void*)-1)
 				{
 						perror("shmat");
@@ -280,7 +281,7 @@ do_client_task(int mode)  // Client's task. Automatically started when a client 
 				if(id == 0)//leader
 				{
 						act.sa_handler = client_leader;
-						sigaction(SIGUSR2, &act, NULL);
+						sigaction(SIGUSR2, &act, NULL);//signal handler for client leader
 						act.sa_handler = SIG_IGN;
 						sigaction(SIGUSR1, &act, NULL);
 						for(i = 0; i < NODENUM-1; i++)
@@ -288,17 +289,17 @@ do_client_task(int mode)  // Client's task. Automatically started when a client 
 #ifdef TIMES
 	gettimeofday(&rwstart, NULL);
 #endif
-								read(client_pipe[RDEND], &buf, 1);//read
+								read(client_pipe[RDEND], &buf, 1);//read from clients pipe -> sync with client workers
 #ifdef TIMES
 	gettimeofday(&rwend, NULL);
 	rwtime += rwend.tv_sec - rwstart.tv_sec;
 #endif
 						}
-						raise(SIGUSR2);
+						raise(SIGUSR2);//start working
 				}
 				else
 				{
-						write_lock(client_pipe[WREND], "\0", 1);
+						write_lock(client_pipe[WREND], "\0", 1);//write to clients pipe -> notice to client leader that initialization is finished
 				}
 
 				while(1)

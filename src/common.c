@@ -17,7 +17,7 @@ int client_pipe[2];
 void
 gen_node(pid_t pids[], int n, void(*task)(int), int mode)
 {
-		//create n children, return value for their ID
+		//create n children
 		int i = 0;
 		pid_t pid = 0;
 		for(;i<n;i++)
@@ -27,7 +27,7 @@ gen_node(pid_t pids[], int n, void(*task)(int), int mode)
 				{
 						id = i;//extern int id at server.c & client.c
 						task(mode);//do_client_task or do_server_task, no return(just exit)
-						exit(-1);//Hoxy Molla
+						exit(-1);
 				}
 				pids[i] = pid;
 				setpgid(pid, pids[0]);//set group id -> first client/server
