@@ -17,8 +17,9 @@ pid_t clients[NODENUM] = {0,};
 extern int client_pipe[2];
 extern int msgid[NODENUM];
 
-struct timeval io_start;
-long rwtime;
+long iotime;
+struct timeval iostart;
+struct timeval ioend;
 long commtime;
 struct timeval commstart;
 struct timeval commend;
@@ -31,15 +32,10 @@ main()
 #endif
 
 		create_source_data();
-
-#ifdef TIMES
-	start_timer(&io_start);
-#endif
+TIMER_START(iostart);
 		client_oriented_io();
 		
-#ifdef TIMES
-	start_timer(&io_start);
-#endif
+TIMER_START(iostart);
 		server_oriented_io();
 		
 }
@@ -56,9 +52,7 @@ do_nothing(int sig)
 void
 client_write_complete(int sig)
 {		//SIGUSR1 handler for parent, client-oriented io
-#ifdef TIMES
-	gettimeofday(&commstart, NULL);
-#endif
+TIMER_START(commstart);
 #ifdef DEBUG
 		puts("parent: SIGUSR1 caught");
 #endif
@@ -82,8 +76,7 @@ server_read_complete(int sig)
 						kill(clients[i], SIGUSR1);
 		}
 #ifdef TIMES
-	gettimeofday(&commend, NULL);
-	commtime = commend.tv_sec - commstart.tv_sec;
+	TIMER_END(commstart, commend, commtime);
 	printf("commtime = %ld\n", commtime);
 #endif
 }
@@ -119,10 +112,15 @@ shutdown(int sig)
 		puts("bye");
 
 #ifdef TIMES
-if (mode == MODE_CLOR)
-	stop_timer(&io_start, "CLOR I/O");
-else if (mode == MODE_SVOR)
-	stop_timer(&io_start, "SVOR I/O");
+if (mode == MODE_CLOR){
+	TIMER_END(iostart,ioend, iotime);
+	printf("CLOR I/O = %ld", iotime);
+}
+	
+else if (mode == MODE_SVOR){
+	TIMER_END(iostart,ioend, iotime);
+	printf("SVOR I/O = %ld", iotime);
+}
 #endif
 		exit(0);
 }
