@@ -71,4 +71,5 @@ void stop_timer(struct timeval *start_time, const char *label);
 
 
 extern struct timeval io_start;
-
+extern long rwtime;
+extern long commtime;

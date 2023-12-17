@@ -23,11 +23,9 @@ static int* shm_addr = NULL;
 static int ser_buf[CHKSIZE] = {0, };
 static pid_t parent;
 
-struct timeval io_start;
-long rwtime;
+long rwtime=0;
 struct timeval rwstart;
 struct timeval rwend;
-
 
 static void
 read_chunk_shm(int sig)
