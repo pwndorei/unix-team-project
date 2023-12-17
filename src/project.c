@@ -17,10 +17,10 @@ pid_t clients[NODENUM] = {0,};
 extern int client_pipe[2];
 extern int msgid[NODENUM];
 
-long iotime;
+long iotime = 0;
 struct timeval iostart;
 struct timeval ioend;
-long commtime;
+long commtime = 0;
 struct timeval commstart;
 struct timeval commend;
 
