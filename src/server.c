@@ -23,7 +23,7 @@ static int* shm_addr = NULL;
 static int ser_buf[CHKSIZE] = {0, };
 static pid_t parent;
 
-long rwtime=0;
+//long rwtime=0;
 struct timeval rwstart;
 struct timeval rwend;
 
