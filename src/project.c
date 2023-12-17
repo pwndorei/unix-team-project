@@ -83,16 +83,17 @@ server_read_complete(int sig)
 static void
 shutdown(int sig)
 {
+		// SIGINT handler
 		int i = 0;
 		puts("shutdown");
 
-		signal(SIGINT, do_nothing);
+		signal(SIGINT, do_nothing); // Prevent duplication of shutdown handler. Once is enough!
 
 		for(i = 0; i < NODENUM; i++)
 		{
-				if(servers[i])
+				if(servers[i])  // visit all alive servers.
 				{
-						kill(servers[i], SIGINT);
+						kill(servers[i], SIGINT);  // kill SIGINT to all servers.
 						waitpid(servers[i], NULL, 0);
 						servers[i] = 0;
 				}
@@ -100,9 +101,9 @@ shutdown(int sig)
 
 		for(i = 0; i < NODENUM; i++)
 		{
-				if(clients[i] && mode == MODE_SVOR)
+				if(clients[i])  // visit all alive clients.
 				{
-						kill(clients[i], SIGINT);
+						kill(clients[i], SIGINT);  // kill SIGINT to all clients.
 						waitpid(clients[i], NULL, 0);
 						clients[i] = 0;
 				}

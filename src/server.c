@@ -63,8 +63,8 @@ shutdown(int sig)
 
 		else if(mode == MODE_SVOR)
 		{
-					close(fd);
-					msgctl(msgid[id], IPC_RMID, NULL);
+					close(fd);  // close own file
+					msgctl(msgid[id], IPC_RMID, NULL);  // close own message queue
 					printf("message queue #%d closed.\n", id);
 #ifdef TIMES
 	stop_timer(&io_start, "SVOR I/O");
@@ -82,7 +82,7 @@ do_server_task(int mode)
 		int data[2] = {0,};
 		int nbyte = 0;
 		struct sigaction act = {0,};
-		fd = open(dat[id], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+		fd = open(dat[id], O_WRONLY | O_CREAT | O_TRUNC, 0644);  // open p*.dat.
 		act.sa_handler = shutdown;
 		if(fd == -1)
 		{
@@ -115,21 +115,21 @@ do_server_task(int mode)
 			sigfillset(&mask);
 			sigdelset(&mask, SIGINT);
 			act.sa_mask = mask;
-			sigaction(SIGINT, &act, NULL);
+			sigaction(SIGINT, &act, NULL);  // ignore other signals while shutdown
 
 			while(1)
 			{
-				for (int i = 0; i < 8; i++)
+				for (int i = 0; i < 8; i++)  // automatically starts
 				{
-					nbyte = msgrcv(msgid[id], &msg, sizeof(int), -8, 0);
+					nbyte = msgrcv(msgid[id], &msg, sizeof(int), -8, 0);  // receive messages from own msg queue.
 					if (nbyte == -1)
 					{
 						perror("msgrcv");
 						printf("server #%d\n", id);
 						exit(-1);
 					}
-					ser_buf[msg.mtype - 1] = msg.mtext[0];
-				}
+					ser_buf[msg.mtype - 1] = msg.mtext[0];  // write data to buffer of a chunk! 'mtype' of msg is data's index of the chunk.
+				} 
 #ifdef TIMES
 	gettimeofday(&rwstart, NULL);
 #endif
@@ -138,7 +138,7 @@ do_server_task(int mode)
 	gettimeofday(&rwend, NULL);
 	rwtime += rwend.tv_sec - rwstart.tv_sec;
 #endif
-				kill(parent, SIGUSR2);
+				kill(parent, SIGUSR2);  // every 8 receives, kill SIGUSR2 to parent to tell "This server's task has done. Go to the next server!"
 
 			}
 		}
