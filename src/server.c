@@ -28,6 +28,7 @@ long rwtime;
 struct timeval rwstart;
 struct timeval rwend;
 
+
 static void
 read_chunk_shm(int sig)
 {
@@ -55,10 +56,6 @@ shutdown(int sig)
 		{
 				close(fd);
 				shmdt(shm_addr);
-#ifdef TIMES
-	stop_timer(&io_start, "CLOR I/O");
-	printf("rwtime = %ld\n", rwtime);
-#endif	
 		}
 
 		else if(mode == MODE_SVOR)
@@ -67,7 +64,6 @@ shutdown(int sig)
 					msgctl(msgid[id], IPC_RMID, NULL);  // close own message queue
 					printf("message queue #%d closed.\n", id);
 #ifdef TIMES
-	stop_timer(&io_start, "SVOR I/O");
 	printf("rwtime = %ld\n", rwtime);
 #endif
 		}
@@ -121,6 +117,7 @@ do_server_task(int mode)
 			{
 				for (int i = 0; i < 8; i++)  // automatically starts
 				{
+
 					nbyte = msgrcv(msgid[id], &msg, sizeof(int), -8, 0);  // receive messages from own msg queue.
 					if (nbyte == -1)
 					{

@@ -37,6 +37,7 @@ long rwtime;
 struct timeval rwstart;
 struct timeval rwend;
 
+
 /*
  * signal for sync (Client-Oriented)
  * client: SIGUSR1 to parent after writing 2 int at shm for 1 chunk
@@ -105,11 +106,7 @@ shutdown(int sig)
 				shmdt(shm_addr);
 				close(fd);//p*.dat
 				close(client_pipe[RDEND]);
-				close(client_pipe[WREND]);
-#ifdef TIMES
-	stop_timer(&io_start, "CLOR I/O");
-	printf("rwtime = %ld\n", rwtime);
-#endif		
+				close(client_pipe[WREND]);		
 		}
 		exit(0);
 }
@@ -164,6 +161,7 @@ client_leader(int sig)
 #ifdef TIMES
 	gettimeofday(&rwend, NULL);
 	rwtime += rwend.tv_sec - rwstart.tv_sec;
+	commtime += rwend.tv_sec - rwstart.tv_sec;
 #endif
 
 		kill(-getpid(), SIGUSR1);//SIGUSR1 to all other clients -> invoke sighandler(client_worker)
@@ -236,11 +234,10 @@ svor_client(int sig)
 		msg.mtext[0] = data[0];
 		msg.mtype = id + 1;
 		msgsnd(msgid[msgi], &msg, sizeof(int), 0); // send msg to msg queue #msgi
-
 		msg.mtext[0] = data[1];
 		msg.mtype = id + NODENUM + 1;
-		msgsnd(msgid[msgi], &msg, sizeof(int), 0);
 
+		msgsnd(msgid[msgi], &msg, sizeof(int), 0);
 		msgi++;
 		msgi %= NODENUM;  // go to next message queue.
 }
