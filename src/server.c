@@ -32,15 +32,10 @@ struct timeval rwend;
 static void
 read_chunk_shm(int sig)
 {
-#ifdef TIMES
-	gettimeofday(&rwstart, NULL);
-#endif
+TIMER_START(rwstart);
 		//SIGUSR1 handler
 		write(fd, shm_addr, CHKSIZE);// write data
-#ifdef TIMES
-	gettimeofday(&rwend, NULL);
-	rwtime += rwend.tv_sec - rwstart.tv_sec;
-#endif
+TIMER_END(rwstart, rwend, rwtime);
 #ifdef DEBUG
 		puts("server: read complete");
 #endif
@@ -127,14 +122,9 @@ do_server_task(int mode)
 					}
 					ser_buf[msg.mtype - 1] = msg.mtext[0];  // write data to buffer of a chunk! 'mtype' of msg is data's index of the chunk.
 				} 
-#ifdef TIMES
-	gettimeofday(&rwstart, NULL);
-#endif
+TIMER_START(rwstart);
 				write(fd, ser_buf, CHKSIZE);  // write data to file
-#ifdef TIMES
-	gettimeofday(&rwend, NULL);
-	rwtime += rwend.tv_sec - rwstart.tv_sec;
-#endif
+TIMER_END(rwstart, rwend, rwtime);
 				kill(parent, SIGUSR2);  // every 8 receives, kill SIGUSR2 to parent to tell "This server's task has done. Go to the next server!"
 
 			}
