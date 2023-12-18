@@ -116,10 +116,10 @@ do_server_task(int mode)
 TIMER_START(commstart);
 			while(1)
 			{
-				for (int i = 0; i < CHKSIZE/NODENUM; i++)  // automatically starts
+				for (int i = 0; i < CHKSIZE/(4); i++)  // automatically starts
 				{
 
-					nbyte = msgrcv(msgid[id], &msg, sizeof(int), -(CHKSIZE/NODENUM), 0);  // receive messages from own msg queue.
+					nbyte = msgrcv(msgid[id], &msg, sizeof(int), 0, 0);  // receive messages from own msg queue.
 					if (nbyte == -1)
 					{
 						perror("msgrcv");

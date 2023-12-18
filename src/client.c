@@ -118,17 +118,19 @@ client_worker(int sig)
 
 		struct flock lock = {.l_whence=SEEK_SET, .l_len=0, .l_start=0};
 		int nbytes = 0;
-		int data[2] = {0,};
+		int i = 0;
 
-		nbytes = read(fd, data, 8);//read file data
+		nbytes = read(fd, data, CHKSIZE / (NODENUM));//read file data
 		if(nbytes == 0)
 		{
 				puts("client: EOF");
 				exit(0);
 		}
 TIMER_START(rwstart);
-		shm_addr[id] = data[0];//write data
-		shm_addr[id + NODENUM] = data[1];
+		for(i = 0;i<CHKSIZE/(4*NODENUM); i++)
+		{
+			shm_addr[id + NODENUM*i] = data[i];//write data
+		}
 TIMER_END(rwstart, rwend, rwtime);
 		write_lock(client_pipe[WREND], "\0", 1);//notify write completion via clients pipe
 
@@ -141,13 +143,14 @@ client_leader(int sig)
 		puts("client: leader");
 #endif
 		int nbytes = 0;
-		int data[2] = {0,};
 		int i = 0;
 		char buf;
-		nbytes = read(fd, data, 8);//read file data
+		nbytes = read(fd, data, CHKSIZE / (NODENUM));//read file data
 TIMER_START(rwstart);
-		shm_addr[id] = data[0];//write data
-		shm_addr[id + NODENUM] = data[1];
+		for(i = 0;i<CHKSIZE/(4*NODENUM); i++)
+		{
+			shm_addr[id + NODENUM*i] = data[i];//write data
+		}
 TIMER_END(rwstart, rwend, rwtime);
 
 		kill(-getpid(), SIGUSR1);//SIGUSR1 to all other clients -> invoke sighandler(client_worker)
@@ -193,7 +196,7 @@ svor_client(int sig)
 		int i = 0;
 
 TIMER_START(rwstart);
-		nbyte = read(fd, data, CHKSIZE / (4*NODENUM));//read data from own file
+		nbyte = read(fd, data, CHKSIZE / (NODENUM));//read data from own file
 TIMER_END(rwstart, rwend, rwtime);
 
 		if (nbyte == -1)
@@ -213,7 +216,7 @@ TIMER_END(rwstart, rwend, rwtime);
 		// send two data
 		for(i = 0;i<CHKSIZE/(4*NODENUM); i++)
 		{
-			msg.mtext[i] = data[i];
+			msg.mtext[0] = data[i];
 			msg.mtype = id + 1 + i * NODENUM;
 			msgsnd(msgid[msgi], &msg, sizeof(int), 0);
 		}

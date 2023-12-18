@@ -11,7 +11,7 @@
 #include <sys/time.h>
 
 #define NODENUM  4
-#define CHKSIZE 0x400// 32bytes(8 int)
+#define CHKSIZE 0x1000//
 #define MODE_CLOR 0
 #define MODE_SVOR 1
 
