@@ -72,4 +72,4 @@ void server_read_complete(int);//SIGUSR2 handler
 
 // extern struct timeval io_start;
 extern long rwtime;
-// extern long commtime;
+extern long commtime;

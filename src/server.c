@@ -26,6 +26,8 @@ static pid_t parent;
 
 struct timeval rwstart;
 struct timeval rwend;
+struct timeval commstart;
+struct timeval commend;
 
 static void
 read_chunk_shm(int sig)
@@ -61,6 +63,8 @@ shutdown(int sig)
 					printf("message queue #%d closed.\n", id);
 #ifdef TIMES
 	printf("SVOR server rwtime = %ld\n", rwtime);
+TIMER_END(commstart, commend, commtime);
+	printf("SVOR commtime = %ld\n", commtime);
 #endif
 		}
 		exit(0);
@@ -109,6 +113,7 @@ do_server_task(int mode)
 			act.sa_mask = mask;
 			sigaction(SIGINT, &act, NULL);  // ignore other signals while shutdown
 
+TIMER_START(commstart);
 			while(1)
 			{
 				for (int i = 0; i < 8; i++)  // automatically starts
