@@ -29,7 +29,7 @@ extern int mode;//from project.c, MODE_CLOR | MODE_SVOR
 static pid_t parent;
 static int* shm_addr = NULL;
 static int fd = -1;//fd for p*.dat
-static int data[2] = {0,};
+static int data[CHKSIZE/(4*NODENUM)] = {0,};
 static int nbyte = 0;
 
 long rwtime = 0;
@@ -190,9 +190,10 @@ svor_client(int sig)
 		// When a client receives SIGUSR1, it does its read-and-send task.
 		struct msqid_ds buf;
 		msgbuf msg;
+		int i = 0;
 
 TIMER_START(rwstart);
-		nbyte = read(fd, &data, sizeof(int) * 2);//read data from own file
+		nbyte = read(fd, data, CHKSIZE / (4*NODENUM));//read data from own file
 TIMER_END(rwstart, rwend, rwtime);
 
 		if (nbyte == -1)
@@ -210,13 +211,21 @@ TIMER_END(rwstart, rwend, rwtime);
 				exit(0);
 		}
 		// send two data
+		for(i = 0;i<CHKSIZE/(4*NODENUM); i++)
+		{
+			msg.mtext[i] = data[i];
+			msg.mtype = id + 1 + i * NODENUM;
+			msgsnd(msgid[msgi], &msg, sizeof(int), 0);
+		}
+		/*
+		
 		msg.mtext[0] = data[0];
 		msg.mtype = id + 1;
 		msgsnd(msgid[msgi], &msg, sizeof(int), 0); // send msg to msg queue #msgi
 		msg.mtext[0] = data[1];
 		msg.mtype = id + NODENUM + 1;
 		msgsnd(msgid[msgi], &msg, sizeof(int), 0);
-
+		*/
 		msgi++;
 		msgi %= NODENUM;  // go to next message queue.
 }
