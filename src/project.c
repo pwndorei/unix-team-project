@@ -120,6 +120,7 @@ if (mode == MODE_CLOR){
 else if (mode == MODE_SVOR){
 	TIMER_END(iostart,ioend, iotime);
 	printf("SVOR I/O = %ld\n", iotime);
+	TIMER_END(commstart,commend, commtime);
 	printf("SVOR commtime = %ld\n", commtime);
 }
 #endif
@@ -190,6 +191,7 @@ server_oriented_io()
 		create_msg_queue();
 		gen_node(clients, NODENUM, do_client_task, MODE_SVOR);
 		gen_node(servers, NODENUM, do_server_task, MODE_SVOR);
+TIMER_START(commstart);
 
 		while(1)
 		{
