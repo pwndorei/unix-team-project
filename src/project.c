@@ -77,7 +77,6 @@ server_read_complete(int sig)
 		}
 #ifdef TIMES
 	TIMER_END(commstart, commend, commtime);
-	printf("commtime = %ld\n", commtime);
 #endif
 }
 
@@ -114,12 +113,14 @@ shutdown(int sig)
 #ifdef TIMES
 if (mode == MODE_CLOR){
 	TIMER_END(iostart,ioend, iotime);
-	printf("CLOR I/O = %ld", iotime);
+	printf("CLOR I/O = %ld\n", iotime);
+	printf("CLOR commtime = %ld\n", commtime);
 }
 	
 else if (mode == MODE_SVOR){
 	TIMER_END(iostart,ioend, iotime);
-	printf("SVOR I/O = %ld", iotime);
+	printf("SVOR I/O = %ld\n", iotime);
+	printf("SVOR commtime = %ld\n", commtime);
 }
 #endif
 		exit(0);

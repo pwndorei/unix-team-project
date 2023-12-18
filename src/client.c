@@ -102,7 +102,7 @@ shutdown(int sig)
 				close(client_pipe[RDEND]);
 				close(client_pipe[WREND]);
 #ifdef TIMES
-	printf("rwtime = %ld\n", rwtime);
+	printf("CLOR client rwtime = %ld\n", rwtime);
 #endif		
 		}
 		exit(0);
@@ -204,6 +204,9 @@ TIMER_END(rwstart, rwend, rwtime);
 		{
 				close(fd);  // close client's own file
 				kill(parent, SIGINT); // kill SIGINT to tell the parent that client is going to exit.
+#ifdef TIMES
+	printf("SVOR client rwtime = %ld\n", rwtime);
+#endif	
 				exit(0);
 		}
 		// send two data
