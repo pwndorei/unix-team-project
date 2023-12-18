@@ -23,7 +23,7 @@ static int* shm_addr = NULL;
 static int ser_buf[CHKSIZE] = {0, };
 static pid_t parent;
 
-//long rwtime=0;
+
 struct timeval rwstart;
 struct timeval rwend;
 
@@ -49,6 +49,9 @@ shutdown(int sig)
 		{
 				close(fd);
 				shmdt(shm_addr);
+#ifdef TIMES
+	printf("CLOR server rwtime = %ld\n", rwtime);
+#endif
 		}
 
 		else if(mode == MODE_SVOR)
@@ -57,7 +60,7 @@ shutdown(int sig)
 					msgctl(msgid[id], IPC_RMID, NULL);  // close own message queue
 					printf("message queue #%d closed.\n", id);
 #ifdef TIMES
-	printf("rwtime = %ld\n", rwtime);
+	printf("SVOR server rwtime = %ld\n", rwtime);
 #endif
 		}
 		exit(0);
